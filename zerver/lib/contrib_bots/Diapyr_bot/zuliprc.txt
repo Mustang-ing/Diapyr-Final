@@ -1,0 +1,4 @@
+[api]
+email=Test-bot@zulipdev.com
+key=1stmhpOWNel0CFDVLrtmYwlrK1SAK3e1
+site=http://localhost:9991
