@@ -2,7 +2,7 @@
 {# Home page for not logged-in users. #}
 
 {% block title %}
-<title>{{ _("Create a new organization") }} | Zulip</title>
+<title>{{ _("Create a new organization") }} | Diapyr</title>
 {% endblock %}
 
 {# This is where we pitch the app and solicit signups. #}
@@ -13,7 +13,7 @@
 
         <div class="register-form left" id="new-realm-creation">
             <div class="lead">
-                <h1 class="get-started">{{ _("Create a new Zulip organization") }}</h1>
+                <h1 class="get-started">{{ _("Create a new Diapyr organization") }}</h1>
             </div>
             <div class="white-box">
                 <form class="form-inline" id="create_realm" name="email_form"
@@ -38,13 +38,6 @@
                         <button type="submit" class="new-organization-button register-button">{{ _("Create organization") }}</button>
                     </div>
                 </form>
-            </div>
-            <div class="bottom-text">
-                {% trans %}
-                Or import
-                from <a href="/help/import-from-slack">Slack</a>, <a href="/help/import-from-mattermost">Mattermost</a>,
-                or <a href="/help/import-from-rocketchat">Rocket.Chat</a>.
-                {% endtrans %}
             </div>
         </div>
     </div>

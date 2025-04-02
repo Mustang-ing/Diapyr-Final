@@ -1,7 +1,7 @@
 {% extends "zerver/portico_signup.html" %}
 
 {% block title %}
-<title>{{ _("Deactivated organization") }} | Zulip</title>
+<title>{{ _("Deactivated organization") }} | Diapyr</title>
 {% endblock %}
 
 {% block customhead %}
@@ -35,11 +35,11 @@
                         {% endtrans %}
                         {% if corporate_enabled %}
                             {% trans %}
-                            If you are an owner of this organization, you can <a href="mailto:{{ support_email }}">contact Zulip support</a> to reactivate it.
+                            If you are an owner of this organization, you can <a href="mailto:{{ support_email }}">contact Diapyr support</a> to reactivate it.
                             {% endtrans %}
                         {% else %}
                             {% trans %}
-                            If you are an owner of this organization, you can <a href="mailto:{{ support_email }}">contact this Zulip server's administrators</a> to reactivate it.
+                            If you are an owner of this organization, you can <a href="mailto:{{ support_email }}">contact this Diapyr server's administrators</a> to reactivate it.
                             {% endtrans %}
                         {% endif %}
                     {% endif %}
