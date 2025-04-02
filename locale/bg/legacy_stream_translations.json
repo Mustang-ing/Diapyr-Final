@@ -28,7 +28,7 @@
   "Cannot subscribe to <z-stream></z-stream>": "Не можете да се абонирате към <z-stream></z-stream>",
   "Cannot subscribe to private stream <z-stream></z-stream>": "Не можете да се абонирате към затворения поток <z-stream></z-stream>",
   "Cannot view stream": "Не можете да прегледате този поток",
-  "Configure how Zulip notifies you about new messages. In muted streams, stream notification settings apply only to unmuted topics.": "Конфигурирайте начина, по който Zulip ви уведомява за нови съобщения. Настройките за известия на заглушените потоци се прилагат само за незаглушените теми.",
+  "Configure how Diapyr notifies you about new messages. In muted streams, stream notification settings apply only to unmuted topics.": "Конфигурирайте начина, по който Diapyr ви уведомява за нови съобщения. Настройките за известия на заглушените потоци се прилагат само за незаглушените теми.",
   "Configure the default streams new users are subscribed to when joining your organization.": "Конфигурирайте началните потоци, към които новите членове на организацията ще бъдат абонирани автоматично.",
   "Consider <z-link>searching all public streams</z-link>.": "Можете да <z-link>потърсите във всички публични потоци</z-link>.",
   "Create a stream": "Създайте поток",

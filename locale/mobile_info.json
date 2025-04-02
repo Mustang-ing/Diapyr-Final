@@ -4,7 +4,7 @@
     "total": 456
   },
   "be": {
-    "not_translated": 0,
+    "not_translated": 1,
     "total": 456
   },
   "bg": {
@@ -20,7 +20,7 @@
     "total": 456
   },
   "cs": {
-    "not_translated": 0,
+    "not_translated": 113,
     "total": 456
   },
   "cy": {
@@ -28,7 +28,7 @@
     "total": 456
   },
   "da": {
-    "not_translated": 200,
+    "not_translated": 202,
     "total": 456
   },
   "de": {
@@ -52,7 +52,7 @@
     "total": 456
   },
   "fi": {
-    "not_translated": 0,
+    "not_translated": 3,
     "total": 456
   },
   "fr": {
@@ -84,7 +84,7 @@
     "total": 456
   },
   "ja": {
-    "not_translated": 84,
+    "not_translated": 108,
     "total": 456
   },
   "ko": {
@@ -160,7 +160,7 @@
     "total": 456
   },
   "uk": {
-    "not_translated": 211,
+    "not_translated": 229,
     "total": 456
   },
   "vi": {
@@ -168,7 +168,7 @@
     "total": 456
   },
   "zh_Hans": {
-    "not_translated": 0,
+    "not_translated": 1,
     "total": 456
   },
   "zh_TW": {

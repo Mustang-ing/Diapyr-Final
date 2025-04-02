@@ -35,7 +35,7 @@
   "Filter default streams": "Filtrar canais predefinidos",
   "Filter streams": "Filtrar canais",
   "First time? Read our <z-link>guidelines</z-link> for creating and naming streams.": "Primeira vez? Leia as nossas <z-link>guidelines</z-link> para criar e nomear canais.",
-  "Forked from upstream at {zulip_merge_base}": "Bifurcação do upstream em {zulip_merge_base}",
+  "Forked from upstream at {diapyr_merge_base}": "Bifurcação do upstream em {diapyr_merge_base}",
   "Generate stream email address": "Gerar endereço de e-mail do canal",
   "Invalid stream ID": "ID de canal inválido",
   "Message #{stream_name}": "Enviar para #{stream_name}",

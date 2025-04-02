@@ -29,7 +29,7 @@
   "Exports all users, settings, and all data visible in public streams.": "Minden nyilvános üzenetfolyamban szereplő felhasználó, beállítás és adat exportálása",
   "Filter streams": "Üzenetfolyamok szűrése",
   "First time? Read our <z-link>guidelines</z-link> for creating and naming streams.": "Első alkalom? Olvasd el <z-link>útmutatónkat</z-link> az üzenetfolyamok létrehozásáról és elnevezéséről.",
-  "Forked from upstream at {zulip_merge_base}": "Forkolva innen: {zulip_merge_base}",
+  "Forked from upstream at {diapyr_merge_base}": "Forkolva innen: {diapyr_merge_base}",
   "Message #{stream_name}": "Üzenet #{stream_name}",
   "Message #{stream_name} > {topic_name}": "Üzenet #{stream_name} > {topic_name}",
   "Mute stream": "Üzenetfolyam némítása",

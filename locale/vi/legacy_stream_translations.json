@@ -30,7 +30,7 @@
   "Filter default streams": "Lọc các Stream mặc định",
   "Filter streams": "Lọc Stream",
   "First time? Read our <z-link>guidelines</z-link> for creating and naming streams.": "Điều đầu tiên? Đọc các <z-link>nguyên tắc</z-link> của chúng tôi để tạo và đặt tên cho các Streams.",
-  "Forked from upstream at {zulip_merge_base}": "Đã chuyển từ ngược dòng tại {zulip_merge_base}",
+  "Forked from upstream at {diapyr_merge_base}": "Đã chuyển từ ngược dòng tại {diapyr_merge_base}",
   "Message #{stream_name}": "Nhắn tin # {stream_name}",
   "Message #{stream_name} > {topic_name}": "Tin nhắn # {stream_name}> {topic_name}",
   "Mute stream": "Ẩn stream",

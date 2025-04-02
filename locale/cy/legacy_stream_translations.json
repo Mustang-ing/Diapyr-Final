@@ -32,7 +32,7 @@
   "Filter default streams": "Hidlo ffrydiau rhagosodedig",
   "Filter streams": "Hidlo ffrydiau",
   "First time? Read our <z-link>guidelines</z-link> for creating and naming streams.": "Y tro cyntaf? Darllenwch ein<z-link> canllawiau</z-link> ar gyfer creu ac enwi ffrydiau.",
-  "Forked from upstream at {zulip_merge_base}": "Wedi'i fforchio o fyny'r afon yn {zulip_merge_base}",
+  "Forked from upstream at {diapyr_merge_base}": "Wedi'i fforchio o fyny'r afon yn {diapyr_merge_base}",
   "Message #{stream_name}": "Neges #{stream_name}",
   "Message #{stream_name} > {topic_name}": "Neges #{stream_name} > {topic_name}",
   "Mute stream": "Mudo'r ffrwd",

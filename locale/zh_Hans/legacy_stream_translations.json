@@ -37,7 +37,7 @@
   "Filter default streams": "过滤默认频道",
   "Filter streams": "过滤频道",
   "First time? Read our <z-link>guidelines</z-link> for creating and naming streams.": "第一次？阅读我们的<z-link>新手指引</z-link>用于创建和命名频道。",
-  "Forked from upstream at {zulip_merge_base}": "从上游在 {zulip_merge_base} 分叉",
+  "Forked from upstream at {diapyr_merge_base}": "从上游在 {diapyr_merge_base} 分叉",
   "Message #{stream_name}": "在群聊 #{stream_name} 中发送消息",
   "Message #{stream_name} > {topic_name}": "在 #{stream_name} > {topic_name}  中发送消息",
   "Mute stream": "静音频道",

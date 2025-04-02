@@ -34,7 +34,7 @@
   "Filter default streams": "تصفية الغرف الافتراضية",
   "Filter streams": "تصفية الغرف",
   "First time? Read our <z-link>guidelines</z-link> for creating and naming streams.": "أول مرة؟ اقرأ<z-link> قواعدنا الإرشادية</z-link> لإنشاء وتسمية الغرف.",
-  "Forked from upstream at {zulip_merge_base}": "متشعب من المنبع في {zulip_merge_base}",
+  "Forked from upstream at {diapyr_merge_base}": "متشعب من المنبع في {diapyr_merge_base}",
   "Invalid stream ID": "مُعرف غرفة غير صالح",
   "Message #{stream_name}": "الرسالة {stream_name}",
   "Message #{stream_name} > {topic_name}": "الرسالة #{stream_name} > {topic_name}",

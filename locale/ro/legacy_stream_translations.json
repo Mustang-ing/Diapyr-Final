@@ -36,7 +36,7 @@
   "Exports all users, settings, and all data visible in public streams.": "Exportă toți utilizatorii, setările și toate informațiile vizibile în huburile publice.",
   "Filter streams": "Filtrează huburile",
   "First time? Read our <z-link>guidelines</z-link> for creating and naming streams.": "Prima data? Citiți-ne<z-link> instrucțiuni</z-link> pentru crearea și denumirea fluxurilor.",
-  "Forked from upstream at {zulip_merge_base}": "Bifurcat din amonte la {zulip_merge_base}",
+  "Forked from upstream at {diapyr_merge_base}": "Bifurcat din amonte la {diapyr_merge_base}",
   "Invalid stream ID": "ID de hub nevalid",
   "Message #{stream_name}": "Mesaj #{stream_name}",
   "Message #{stream_name} > {topic_name}": "Mesaj #{stream_name} > {topic_name}",

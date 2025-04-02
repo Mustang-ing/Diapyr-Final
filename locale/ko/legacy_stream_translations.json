@@ -27,7 +27,7 @@
   "Exports all users, settings, and all data visible in public streams.": "공용 스트림에서 볼 수 있는 모든 사용자, 설정과 모든 데이터를 내보내기",
   "Filter streams": "스트림 필터링",
   "First time? Read our <z-link>guidelines</z-link> for creating and naming streams.": "처음이신가요? 스트림의 이름을 짓거나 만들기 위해서는 우리의<z-link>가이드</z-link>를 읽어주세요.",
-  "Forked from upstream at {zulip_merge_base}": "{zulip_merge_base}에 있는 업스트림으로 부터 포크된",
+  "Forked from upstream at {diapyr_merge_base}": "{diapyr_merge_base}에 있는 업스트림으로 부터 포크된",
   "Message #{stream_name}": "{stream_name}으로 메세지로 보냄",
   "Message #{stream_name} > {topic_name}": "{stream_name} > {topic_name}로 메세지를 보냄",
   "Mute stream": "스트림 뮤트하기",

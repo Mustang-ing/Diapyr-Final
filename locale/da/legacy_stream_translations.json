@@ -7,7 +7,7 @@
   "Browse 1 more stream": "Gennemse 1 kanal mere",
   "Browse streams": "Gennemse kanaler",
   "Browse {can_subscribe_stream_count} more streams": "Gennemse {can_subscribe_stream_count} andre kanaler",
-  "Configure how Zulip notifies you about new messages. In muted streams, stream notification settings apply only to unmuted topics.": "Konfigurer hvordan Zulip underretter dig om nye beskeder. I kanaler uden lyd vil indstillinger for kanalnotifikationer kun gælde for emner med lyd.",
+  "Configure how Diapyr notifies you about new messages. In muted streams, stream notification settings apply only to unmuted topics.": "Konfigurer hvordan Diapyr underretter dig om nye beskeder. I kanaler uden lyd vil indstillinger for kanalnotifikationer kun gælde for emner med lyd.",
   "Create a stream": "Opret en kanal",
   "Create new stream": "Opret ny kanal",
   "Create stream": "Opret kanal",
@@ -74,7 +74,7 @@
   "You are not currently subscribed to this stream.": "Du er ikke tilmeldt denne kanal.",
   "You are not subscribed to any streams.": "Du har endnu ikke tilmeldt nogen kanaler",
   "You are not subscribed to stream <z-stream-name></z-stream-name>": "Du er ikke tilmeldt kanal <z-stream-name></z-stream-name>",
-  "You can use email to send messages to Zulip streams.": "Du kan bruge email til at sende beskeder til kanaler.",
+  "You can use email to send messages to Diapyr streams.": "Du kan bruge email til at sende beskeder til kanaler.",
   "You subscribed to stream <z-stream-name></z-stream-name>": "Du tilmeldte kanal <z-stream-name></z-stream-name>",
   "You unsubscribed from stream <z-stream-name></z-stream-name>": "Du afmeldte kanal <z-stream-name></z-stream-name>",
   "back to streams": "tilbage til kanaler"

@@ -40,7 +40,7 @@
   "Filter default streams": "Suodata oletuskanavia",
   "Filter streams": "Suodata kanavia",
   "First time? Read our <z-link>guidelines</z-link> for creating and naming streams.": "Ensikertalainen? Lue <z-link>ohjeemme</z-link> kanavien luomisesta ja nimeämisestä.",
-  "Forked from upstream at {zulip_merge_base}": "Haaroitettu ylävirrasta {zulip_merge_base}",
+  "Forked from upstream at {diapyr_merge_base}": "Haaroitettu ylävirrasta {diapyr_merge_base}",
   "Generate stream email address": "Generoi kanavan sähköpostiosoite",
   "Invalid stream ID": "Viallinen kanava-ID",
   "Log in to browse more streams": "Kirjudu sisään nähdäksesi lisää kanavia",
