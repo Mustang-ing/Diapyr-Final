@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Inscription au Débat</title>
+    <link rel="stylesheet" href="formulaire_debat.css">
+</head>
+<body>
+    <h1>Inscription au Débat</h1>
+    
+    <form id="debateForm">
+        <!-- Les champs du formulaire restent identiques -->
+        <div class="form-group">
+            <label>Âge:</label>
+            <input type="number" id="age" min="0" max="120" required>
+            <div class="error" id="ageError">L'âge doit être entre 0 et 120</div>
+        </div>
+
+        <div class="form-group">
+            <label>Genre:</label>
+            <select id="gender" required>
+                <option value="">-- Sélectionnez --</option>
+                <option value="homme">Homme</option>
+                <option value="femme">Femme</option>
+                <option value="autre">Autre</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Pays:</label>
+            <select id="country" required>
+                <option value="">-- Sélectionnez --</option>
+		<option value="FR">France</option>
+		<option value="BE">Belgique</option>
+		<option value="CA">Canada</option>
+		<option value="CH">Suisse</option>
+		<option value="DE">Allemagne</option>
+		<option value="ES">Espagne</option>
+		<option value="IT">Italie</option>
+		<option value="GB">Royaume-Uni</option>
+		<option value="US">États-Unis</option>
+		<option value="JP">Japon</option>
+		<option value="CN">Chine</option>
+		<option value="BR">Brésil</option>
+		<option value="IN">Inde</option>
+		<option value="AU">Australie</option>
+		<option value="MX">Mexique</option>
+		<option value="NL">Pays-Bas</option>
+		<option value="SE">Suède</option>
+		<option value="NO">Norvège</option>
+		<option value="DK">Danemark</option>
+		<option value="PT">Portugal</option>
+		<option value="GR">Grèce</option>
+		<option value="RU">Russie</option>
+		<option value="ZA">Afrique du Sud</option>
+		<option value="AR">Argentine</option>
+		<option value="KR">Corée du Sud</option>
+		<option value="SG">Singapour</option>
+		<option value="NZ">Nouvelle-Zélande</option>
+		<option value="AE">Émirats Arabes Unis</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label>Niveau en débat:</label>
+            <select id="level" required>
+                <option value="">-- Sélectionnez --</option>
+                <option value="debutant">Débutant</option>
+                <option value="intermediaire">Intermédiaire</option>
+                <option value="expert">Expert</option>
+            </select>
+        </div>
+
+        <button type="submit">Enregistrer</button>
+    </form>
+
+    <script src="formulaire_debat.js"></script>
+</body>
+</html>
