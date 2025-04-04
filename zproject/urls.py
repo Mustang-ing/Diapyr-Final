@@ -247,8 +247,11 @@ from zerver.views.video_calls import (
     make_zoom_video_call,
     register_zoom_user,
 )
+
 from zerver.views.zephyr import webathena_kerberos_login
 from zproject import dev_urls
+from zerver.views.diapyr_debat_form import formulaire_debat
+
 
 if settings.TWO_FACTOR_AUTHENTICATION_ENABLED:  # nocoverage
     from two_factor.gateways.twilio.urls import urlpatterns as tf_twilio_urls
@@ -557,7 +560,7 @@ i18n_urls = [
     # We have a desktop-specific landing page in case we change our /
     # to not log in in the future. We don't want to require a new
     # desktop app build for everyone in that case
-    path("desktop_home/", desktop_home),
+    path("desktop_home/", desktop_home), #--> C'est la page d'accueil de Zulip
     # Backwards-compatibility (legacy) Google auth URL for the mobile
     # apps; see https://github.com/zulip/zulip/issues/13081 for
     # background.  We can remove this once older versions of the
@@ -658,6 +661,7 @@ i18n_urls = [
     path("integrations/doc-html/<integration_name>", integration_doc),
     path("integrations/", integrations_view),
     path("integrations/<path:path>", integrations_view),
+    path("diapyr_debat/",formulaire_debat,name="diapyr_debat_form"),
 ]
 
 # Make a copy of i18n_urls so that they appear without prefix for english

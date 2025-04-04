@@ -26,6 +26,8 @@ class ObjectD:
         self.subscribers[user_email] = user_info
         print(f"Ajout du participant {user_email}")
 
+    #La fonction split_into_groups répartit les utilisateurs en groupes de taille max_per_group,depuis la liste des inscrit (via leur clé).
+    #Elle mélange d'abord la liste des utilisateurs, puis les divise en groupes de taille max_per_group.
     def split_into_groups(self):
         #Répartit les utilisateurs en groupes.
         print("split_into_groups")
@@ -33,7 +35,7 @@ class ObjectD:
         random.shuffle(users)
         groups = [users[i:i + self.max_per_group] for i in range(0, len(users), self.max_per_group)]
         return groups
-
+    
     def create_streams_for_groups(self, groups):
         #Crée des streams pour chaque groupe.
         print("Création d'un channel pour les groupes")
