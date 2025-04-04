@@ -631,7 +631,9 @@ LOCALE_PATHS = (os.path.join(DEPLOY_ROOT, "locale"),)
 FILE_UPLOAD_MAX_MEMORY_SIZE = 0
 
 if DEVELOPMENT or "ZULIP_COLLECTING_STATIC" in os.environ:
-    STATICFILES_DIRS = [os.path.join(DEPLOY_ROOT, "static")]
+    STATICFILES_DIRS = [os.path.join(DEPLOY_ROOT, "static"),
+            "/home/ing-tester/zulip/web",        # Additional path
+]
 
 if DEBUG:
     WEBPACK_BUNDLES = "../webpack/"
