@@ -1,0 +1,18 @@
+/* Contenu de la page index.css */
+/* Code css unique à la page index.html */
+
+
+h1 {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.Main-link {
+    text-align: center;
+    margin: 50px;
+}
+
+.Main-link a {
+    margin: 10px;
+    display: inline-block;
+}

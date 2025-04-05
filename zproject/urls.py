@@ -250,7 +250,7 @@ from zerver.views.video_calls import (
 
 from zerver.views.zephyr import webathena_kerberos_login
 from zproject import dev_urls
-from zerver.views.diapyr_debat_form import formulaire_debat
+from zerver.views.diapyr import formulaire_debat,diapyr_home
 
 
 if settings.TWO_FACTOR_AUTHENTICATION_ENABLED:  # nocoverage
@@ -662,6 +662,7 @@ i18n_urls = [
     path("integrations/", integrations_view),
     path("integrations/<path:path>", integrations_view),
     path("diapyr_debat/",formulaire_debat,name="diapyr_debat_form"),
+    path("diapyr_home/",diapyr_home,name="diapyr_home"),
 ]
 
 # Make a copy of i18n_urls so that they appear without prefix for english
