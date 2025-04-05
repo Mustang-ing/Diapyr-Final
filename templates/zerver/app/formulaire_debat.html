@@ -8,7 +8,8 @@
 <body>
     <h1>Inscription au Débat</h1>
     
-    <form id="debateForm">
+    <h2> Vos informations personnelles </h2>
+    <form action="" method="POST" id="debateForm">
         <!-- Les champs du formulaire restent identiques -->
         <div class="form-group">
             <label>Âge:</label>
@@ -71,9 +72,57 @@
             </select>
         </div>
 
-        <button type="submit">Enregistrer</button>
+       
+
+
+        <h2> Information du débat </h2>
+
+        <div class="form-group">
+        <label for="nom">Nom du debat</label>
+		<input type="nom" name="nom" id="nom_debat" placeholder="Nom du debat">
+        </div>  
+
+        <div class="form-group">
+        <label for="email">Email</label>
+		<input type="email" name="email" id="email" placeholder="Votre email">
+        </div>
+
+        <div class="form-group">
+            <label for="nb_max">Nombre de participant maximal dans un groupe</label>
+            <input type="text" id="nb_max" name="nb_max" required>
+        </div>
+
+        <div class="form-group">
+
+        <label for="Date_fin">Date de fin du debat</label>
+        <input type="date" name="Date_fin" id="Date_fin" placeholder="Date de fin du debat">
+        </div>
+
+        <div class="form-group">
+            <label for="time_step">Temps entre les phases</label>
+            <input type="text" id="time_step" name="time_step" required>
+        </div>
+
+        <div class="form-group">
+            <label for="step">Nombre de passes</label>
+            <input type="text" id="step" name="step" required>
+        </div>
+
+        
+        <div class="form-group">
+            <label for="description">Description du débat</label>
+            <textarea type="text" id="description" name="description" rows="4" cols="50" placeholder="Décrivez le sujet du débat ici..."></textarea>
+        </div>
+
+        <button type="submit">Créer le debat</button>
+
     </form>
 
-    <script src="{{ static('script/formulaire_debat.js') }}"></script>
+
+
+    
+
+    <!-- <script src="{{ static('script/formulaire_debat.js') }}"></script> 
+     Le script n'est pas essentielle, il ne fait qu'envoyer les infos au serveur-->
 </body>
 </html>
