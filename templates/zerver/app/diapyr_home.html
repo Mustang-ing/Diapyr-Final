@@ -26,16 +26,16 @@
 <main>
 	<div class="Main-link">
 		<h2> Liste des débats</h2><br>
-		<ul>
-			{% for deb in debat%}
-				<li>
-					<strong>{{ deb.title}}</strong><br>
-					Description: {{	deb.description }}<br>
-					Date de fin: {{ deb.end_date }}<br>
-				</li><br>
+		<ul class="debate-list">
 			{% if (debat|length) == 0 %}
 					<p>Aucun débat n'a encore été créé.</p>
 			{% endif %}
+			{% for deb in debat%}
+				<li class="debate-item">
+					<strong>{{ deb.title}}</strong>
+					Description: {{	deb.description }}
+					Date de fin: {{ deb.end_date }}
+				</li>
 			{% endfor %}
 		</ul>
 	</div>

@@ -47,4 +47,34 @@ def diapyr_home(request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
     return render(request, 'zerver/app/diapyr_home.html',{'debat': debat})
 
+@csrf_exempt
+def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
+    debat = Debat.objects.all()
+    print('La méthode de requête est : ', request.method)
+    print('Les données POST sont : ', request.POST)  
+
+    if request.method == "POST":
+        debat_id = request.POST.get('debat', '').strip()
+        try:
+            debat = Debat.objects.get(id=debat_id)
+            return HttpResponse(f"Joined debate: {debat.title}")
+        except Debat.DoesNotExist:
+            return HttpResponse("Debate not found.", status=404)
+
+    else:
+        return render(request, 'zerver/app/diapyr_join_debat.html',{'debat': debat})
+    """
+    View to handle joining a debate.
+    
+    try:
+        debat = Debat.objects.get(id=debat_id)
+    except Debat.DoesNotExist:
+        return HttpResponse("Debate not found.", status=404)
+
+    if request.method == "POST":
+        # Handle joining the debate
+        # Logic to add the user to the debate goes here
+        return HttpResponse(f"Joined debate: {debat.title}")
+    """
+    
 
