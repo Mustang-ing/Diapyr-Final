@@ -25,9 +25,19 @@
 
 <main>
 	<div class="Main-link">
-		<p> Liste des débats</p>
-
-
+		<h2> Liste des débats</h2><br>
+		<ul>
+			{% for deb in debat%}
+				<li>
+					<strong>{{ deb.title}}</strong><br>
+					Description: {{	deb.description }}<br>
+					Date de fin: {{ deb.end_date }}<br>
+				</li><br>
+			{% if (debat|length) == 0 %}
+					<p>Aucun débat n'a encore été créé.</p>
+			{% endif %}
+			{% endfor %}
+		</ul>
 	</div>
 </main>
 <!-- Eventuelle footer quand tu aurais appris à le possitionner correctement 

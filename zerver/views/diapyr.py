@@ -43,11 +43,8 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
         # Render the form for GET requests
         return render(request, 'zerver/app/formulaire_debat.html')
 
-
 def diapyr_home(request: HttpRequest) -> HttpResponse:
-    """
-    View to render the home page of Diapyr.
-    """
-    return render(request, 'zerver/app/diapyr_home.html')
+    debat = Debat.objects.all()
+    return render(request, 'zerver/app/diapyr_home.html',{'debat': debat})
 
 
