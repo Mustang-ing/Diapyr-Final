@@ -3,10 +3,18 @@ import random
 from datetime import datetime, timedelta
 import time
 import threading
+#from zerver.models.debat import Debat
 
 # Configuration du bot
-client = zulip.Client(config_file="zuliprc.txt")
-print("Client Zulip initialisé avec succès !")
+client = None
+
+def get_client():
+    #Initialise le client Zulip.
+    global client
+    if client is None:
+        client = zulip.Client(config_file="zuliprc.txt")
+        print("Client Zulip initialisé avec succès !")
+    return client
 
 class ObjectD:
     def __init__(self, name, creator_email, max_per_group, end_date, time_between_steps, num_pass):
@@ -68,7 +76,7 @@ def create_stream(stream_name):
     #Crée un stream dans Zulip.
     print(f"Création d'un channel : {stream_name}")
     # Utiliser add_subscriptions pour créer un stream
-    result = client.add_subscriptions(
+    result = get_client().add_subscriptions(
         streams=[{
             "name": stream_name,
             "description": f"Groupe pour l'objet D '{stream_name}'",
@@ -112,7 +120,7 @@ def notify_users(stream_name, user_emails):
             "to": email,
             "content": f"Vous avez été affecté au groupe '{stream_name}'.",
         }
-        client.send_message(message)
+        get_client().send_message(message)
 
 def get_user_id(user_email):
     #Récupère l'ID d'un utilisateur à partir de son email.
@@ -120,7 +128,7 @@ def get_user_id(user_email):
         "client_gravatar": True,
         "include_custom_profile_fields": False,
     }
-    result = client.get_members(request)
+    result = get_client().get_members(request)
     for user in result["members"]:
         if user["email"] == user_email:
             return user["user_id"]
@@ -139,7 +147,7 @@ def handle_message(msg):
         print("On est dans créer là")
         params = content.split()
         if len(params) < 6:
-            client.send_message({
+            get_client().send_message({
                 "type": "private",
                 "to": user_email,
                 "content": "Usage : @créer <nom> <max_par_groupe> <jours_avant_fin> <jours_entre_étapes> <num_pass>",
@@ -153,7 +161,7 @@ def handle_message(msg):
         num_pass = int(params[5])
 
         objects_D[name] = ObjectD(name, user_email, max_per_group, end_date, time_between_steps, num_pass)
-        client.send_message({
+        get_client().send_message({
             "type": "private",
             "to": user_email,
             "content": f"Objet D '{name}' créé avec succès.",
@@ -163,7 +171,7 @@ def handle_message(msg):
         print("Et ici dans s'inscrire")
         params = content.split()
         if len(params) < 2:
-            client.send_message({
+            get_client().send_message({
                 "type": "private",
                 "to": user_email,
                 "content": "Usage : @s'inscrire <nom>",
@@ -172,7 +180,7 @@ def handle_message(msg):
 
         name = params[1]
         if name not in objects_D:
-            client.send_message({
+            get_client().send_message({
                 "type": "private",
                 "to": user_email,
                 "content": f"L'objet D '{name}' n'existe pas.",
@@ -180,14 +188,14 @@ def handle_message(msg):
             return
 
         objects_D[name].add_subscriber(user_email, {"name": "John Doe"})  # Remplace par les infos réelles
-        client.send_message({
+        get_client().send_message({
             "type": "private",
             "to": user_email,
             "content": f"Vous êtes inscrit à l'objet D '{name}'.",
         })
 
     elif content.startswith("@continuer"):
-        client.send_message({
+        get_client().send_message({
             "type": "private",
             "to": user_email,
             "content": "Redirection vers Zulip...",
@@ -206,7 +214,7 @@ def check_and_create_channels():
 def message_listener():
     #Fonction pour écouter les messages entrants.
     print("Démarrage de l'écoute des messages...")
-    client.call_on_each_message(handle_message)
+    get_client().call_on_each_message(handle_message)
 
 def main_loop():
     #Boucle principale du bot.
@@ -219,6 +227,7 @@ def main_loop():
         # Attend quelques secondes avant de recommencer
         time.sleep(10)  # Attendre 10 secondes
         print(i)
+        print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
         i+=1
 
 # Démarrer la boucle principale
