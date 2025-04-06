@@ -1,9 +1,15 @@
+import os
+import django
+
+# Set the settings module from your Zulip settings (adjust path if needed)
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zproject.settings")
+django.setup()
 import zulip
 import random
 from datetime import datetime, timedelta
 import time
 import threading
-#from zerver.models.debat import Debat
+from zerver.models.debat import Debat
 
 # Configuration du bot
 client = None
@@ -228,6 +234,7 @@ def main_loop():
         time.sleep(10)  # Attendre 10 secondes
         print(i)
         print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
+        print(f"Affichager de la base de donnée : {Debat.objects.all()}")
         i+=1
 
 # Démarrer la boucle principale
