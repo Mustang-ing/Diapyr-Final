@@ -24,6 +24,7 @@ class Debat(models.Model):
     description = models.TextField(default="")
     date = models.DateTimeField(default=timezone.now)
     channel_created = models.BooleanField(default=False)
+    debat_created = models.BooleanField(default=False)
     type = models.CharField(max_length=100, choices=Debate_Kind.choices,default=Debate_Kind.General)
     #Participant = models.ManyToManyField(Participant)
     #group = models.ForeignKey(Group, null=True, on_delete=models.SET_NULL)

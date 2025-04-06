@@ -6,7 +6,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zproject.settings")
 django.setup()
 import zulip
 import random
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import time
 import threading
 from zerver.models.debat import Debat
@@ -210,7 +210,7 @@ def handle_message(msg):
 def check_and_create_channels():
     #Vérifie si la période d'inscription est terminée et crée les channels si nécessaire.
     for name, obj in objects_D.items():
-        if datetime.now() > obj.end_date and not obj.channels_created:
+        if datetime.now(timezone.utc) > obj.end_date and not obj.channels_created:
             # Créer les channels et répartir les utilisateurs
             groups = obj.split_into_groups()
             obj.create_streams_for_groups(groups)
@@ -222,11 +222,28 @@ def message_listener():
     print("Démarrage de l'écoute des messages...")
     get_client().call_on_each_message(handle_message)
 
+def create_debat():
+    for debat in Debat.objects.all():
+        if not debat.debat_created:
+            # Créer le débat ici
+            print(f"Création du débat : {debat.title}")
+            # Exemple de création d'un débat
+            objects_D[debat.title] = ObjectD(debat.title, debat.creator_email, debat.max_per_group, debat.end_date, debat.time_between_round, debat.num_pass)
+            # Mettre à jour le statut du débat dans la base de données
+            debat.debat_created = True
+            debat.save()
+            print(f"Débat créé : {debat.title}")
+
+
+
 def main_loop():
     #Boucle principale du bot.
     print("Démarrage de la boucle principale...")
     i=0
     while True:
+
+        #On génére les debats qui n'ont pas encore été génére depuis la table debat
+        create_debat()
         # Vérifie si la période d'inscription est terminée et crée les channels si nécessaire
         check_and_create_channels()
         

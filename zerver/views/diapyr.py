@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from zerver.models.debat import Debat
-from datetime import datetime
+from datetime import datetime, timedelta
 
 @csrf_exempt
 def formulaire_debat(request: HttpRequest) -> HttpResponse:
@@ -24,8 +24,7 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
         if not title or not end_date_str or not creator_email or max_per_group <= 0 or time_between_round <= 0 or num_pass <= 0:
             return HttpResponse("Invalid form data. Please fill out all fields correctly.", status=400)
 
-        # Convert end_date to datetime
-        end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+        end_date = datetime.now() + timedelta(minutes=int(end_date_str))
 
         Debat.objects.create(
             title=title,
