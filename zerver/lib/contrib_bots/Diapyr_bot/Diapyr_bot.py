@@ -9,7 +9,7 @@ import random
 from datetime import datetime, timedelta, timezone
 import time
 import threading
-from zerver.models.debat import Debat
+from zerver.models.debat import Debat,Participant
 
 # Configuration du bot
 client = None
@@ -101,6 +101,7 @@ def add_users_to_stream(stream_name, user_emails):
     #Ajoute des utilisateurs à un stream.
     print(f"Ajout de {user_emails} dans {stream_name}")
     user_ids = [get_user_id(email) for email in user_emails]
+    print(f"Affichage de tous les email #{get_all_zulip_user_emails()}")
     if None in user_ids:
         print(f"Erreur : Impossible de récupérer l'ID d'un ou plusieurs utilisateurs.")
         return False
@@ -128,6 +129,11 @@ def notify_users(stream_name, user_emails):
         }
         get_client().send_message(message)
 
+
+def is_valid_zulip_email(email):
+    users = get_client().get_members()["members"]
+    return email in [u["email"] for u in users]
+
 def get_user_id(user_email):
     #Récupère l'ID d'un utilisateur à partir de son email.
     request = {
@@ -139,6 +145,13 @@ def get_user_id(user_email):
         if user["email"] == user_email:
             return user["user_id"]
     return None
+
+
+def get_all_zulip_user_emails():
+    result = get_client().get_members()
+    return [user["email"] for user in result["members"]]
+
+
 
 # Gestion des objets D
 objects_D = {}
@@ -234,7 +247,16 @@ def create_debat():
             debat.save()
             print(f"Débat créé : {debat.title}")
 
-
+def add_user():
+    for debat in Debat.objects.all():
+        if debat.debat_created:
+            for user in debat.debat_participant.all():
+                if not user.is_register:
+                    # Ajouter l'utilisateur ici
+                    print(f"Ajout de l'utilisateur : {user.email}")
+                    objects_D[debat.title].add_subscriber(user.email, {"name": "John Doe"})
+                    user.is_register = True
+                    user.save()
 
 def main_loop():
     #Boucle principale du bot.
@@ -244,14 +266,31 @@ def main_loop():
 
         #On génére les debats qui n'ont pas encore été génére depuis la table debat
         create_debat()
+        #On ajoute les utilisateurs qui ne sont pas encore inscrits
+        add_user()
         # Vérifie si la période d'inscription est terminée et crée les channels si nécessaire
         check_and_create_channels()
         
         # Attend quelques secondes avant de recommencer
         time.sleep(10)  # Attendre 10 secondes
         print(i)
-        print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
-        print(f"Affichager de la base de donnée : {Debat.objects.all()}")
+        #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
+        #print(f"Affichager de la base de donnée : {Debat.objects.all()}")
+        print(get_all_zulip_user_emails())
+        #cli = client.get_profile()
+        #members = client.get_members()
+        #print(members)
+        """
+        owner_id = 26  # from get_profile()
+        owner_email = None
+
+        for member in members['members']:
+            if member['user_id'] == owner_id:
+                owner_email = member['email']
+                break
+
+        print("Bot owner email:", owner_email)
+        """
         i+=1
 
 # Démarrer la boucle principale

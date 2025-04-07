@@ -1150,6 +1150,21 @@ nav {
             }
         }
 
+        .view-debate-button {
+            display: inline-block;
+            padding: 0px 10px;
+            color: #333;
+            text-decoration: none;
+            font-size: 17px;
+            font-weight: normal;
+            vertical-align: middle;
+            transition: background-color 0.2s;
+        }
+        
+        .view-debate-button:hover {
+            background-color: #e0e0e0;
+        }
+        
         .left-sidebar-toggle-button .left-sidebar-toggle-unreadcount {
             /* The toggle icon is half the width of its container
             and is at the center of the container.

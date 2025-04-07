@@ -129,6 +129,12 @@
         background-color: var(--color-background-navbar);
     }
 
+    .view-debate-button {
+        color: #e4e4e4;
+    }
+    .view-debate-button:hover {
+        background-color: #444444;
+    }
     #scroll-to-bottom-button-container {
         background: transparent;
     }

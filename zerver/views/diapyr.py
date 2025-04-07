@@ -1,8 +1,9 @@
 from django.shortcuts import render
 from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from zerver.models.debat import Debat
+from zerver.models.debat import Debat,Participant
 from datetime import datetime, timedelta
+from zerver.lib.contrib_bots.Diapyr_bot.Diapyr_bot import get_all_zulip_user_emails  # or wherever you define it
 
 @csrf_exempt
 def formulaire_debat(request: HttpRequest) -> HttpResponse:
@@ -55,11 +56,24 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
 
     if request.method == "POST":
         debat_id = request.POST.get('debat', '').strip()
+        email = request.POST.get('email', '').strip()
+        username = request.POST.get('username', '').strip()
         try:
-            debat = Debat.objects.get(id=debat_id)
-            return HttpResponse(f"Joined debate: {debat.title}")
+            debat = Debat.objects.get(debat_id=debat_id)
+            participant = Participant.objects.create(
+            email = email,
+            pseudo = username
+            )
+            
+            debat.debat_participant.add(participant)
+            return HttpResponse(f" User : {participant.pseudo}  joined debate: {debat.title}")
         except Debat.DoesNotExist:
             return HttpResponse("Debate not found.", status=404)
+        """
+        except email not in get_all_zulip_user_emails():
+            print(get_all_zulip_user_emails())
+            return HttpResponse("Email not found.", status=404)
+        """
 
     else:
         return render(request, 'zerver/app/diapyr_join_debat.html',{'debat': debat})
