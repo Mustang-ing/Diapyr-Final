@@ -56,12 +56,10 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
 
     if request.method == "POST":
         debat_id = request.POST.get('debat', '').strip()
-        email = request.POST.get('email', '').strip()
         username = request.POST.get('username', '').strip()
         try:
             debat = Debat.objects.get(debat_id=debat_id)
             participant = Participant.objects.create(
-            email = email,
             pseudo = username
             )
             

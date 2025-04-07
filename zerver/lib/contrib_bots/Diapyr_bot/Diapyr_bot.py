@@ -1,3 +1,4 @@
+import json
 import os
 import django
 
@@ -155,6 +156,14 @@ def get_user_id(user_email):
     return None
 
 
+def get_email_by_full_name(full_name):
+    result = client.get_members()
+    for user in result['members']:
+        if user['full_name'].strip().lower() == full_name.strip().lower():
+            return user['email']
+    return None  # Not found
+
+
 def get_all_zulip_user_emails():
     result = get_client().get_members()
     return [user["email"] for user in result["members"]]
@@ -167,6 +176,7 @@ listeDebat = {}
 
 def handle_message(msg):
     print("Message reçu")
+    print(msg)
     content = msg["content"].strip()
     user_email = msg["sender_email"]
 
@@ -265,10 +275,14 @@ def add_user():
             for user in debat.debat_participant.all():
                 if not user.is_register:
                     # Ajouter l'utilisateur ici
-                    print(f"Ajout de l'utilisateur : {user.email}")
-                    listeDebat[debat.title].add_subscriber(user.email, {"name": "John Doe"})
-                    user.is_register = True
-                    user.save()
+                    print(f"Ajout de l'utilisateur : {user.pseudo}")
+                    user.email = get_email_by_full_name(user.pseudo)
+                    if(get_email_by_full_name(user.pseudo) != None):
+                        listeDebat[debat.title].add_subscriber(user.email, {"name": user.pseudo})
+                        user.is_register = True
+                        user.save()
+                    else: 
+                        print(f"Utilisateur {user.pseudo} non trouvé dans Zulip.")
 
 def main_loop():
     #Boucle principale du bot.
@@ -283,11 +297,12 @@ def main_loop():
         # Vérifie si la période d'inscription est terminée et crée les channels si nécessaire
         check_and_create_channels()
         
-        print(get_all_zulip_user_emails())
+        #print(get_all_zulip_user_emails())
         
-           #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
+        #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
         #print(f"Affichager de la base de donnée : {Debat.objects.all()}")
-        #cli = client.get_profile()
+        
+        
         #members = client.get_members()
         #print(members)
         """
@@ -303,6 +318,7 @@ def main_loop():
         """
         # Attend quelques secondes avant de recommencer
         time.sleep(10)  # Attendre 10 secondes
+        #print(client.get_members())
         
         i+=1
 
