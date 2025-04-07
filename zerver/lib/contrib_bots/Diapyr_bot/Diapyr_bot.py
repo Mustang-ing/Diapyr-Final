@@ -28,7 +28,7 @@ class ObjectD:
         self.creator_email = creator_email
         self.max_per_group = max_per_group
         self.end_date = end_date
-        self.time_between_steps = time_between_steps
+        self.time_between_steps = time_between_steps if isinstance(time_between_steps, timedelta) else timedelta(seconds=int(time_between_steps))
         self.num_pass = num_pass
         self.step = 1
         self.subscribers = {}
@@ -40,82 +40,95 @@ class ObjectD:
         self.subscribers[user_email] = user_info
         print(f"Ajout du participant {user_email}")
 
-    #La fonction split_into_groups répartit les utilisateurs en groupes de taille max_per_group,depuis la liste des inscrit (via leur clé).
-    #Elle mélange d'abord la liste des utilisateurs, puis les divise en groupes de taille max_per_group.
     def split_into_groups(self):
-        #Répartit les utilisateurs en groupes.
-        print("split_into_groups")
+        print("Répartition des utilisateurs en groupes...")
         users = list(self.subscribers.keys())
+        if self.creator_email in users:
+            users.remove(self.creator_email)
         random.shuffle(users)
         groups = [users[i:i + self.max_per_group] for i in range(0, len(users), self.max_per_group)]
+        for group in groups:
+            group.append(self.creator_email)  # Ajout fictif du créateur
         return groups
     
     def create_streams_for_groups(self, groups):
-        #Crée des streams pour chaque groupe.
-        print("Création d'un channel pour les groupes")
+        print("Ajout des utilisateurs dans les streams existants...")
         streams = []
         for i, group in enumerate(groups):
-            stream_name = self.name + self.step*"I"+f"{i+1}" # = f"{self.name}I#{self.step}#{i + 1}"
-            if create_stream(stream_name):
-                if add_users_to_stream(stream_name, group):
-                    notify_users(stream_name, group)
-                    streams.append(stream_name)
+            stream_name = self.name + self.step * "I" + f"{i+1}"
+            print(f"Tentative d'ajout dans le stream : {stream_name}")
+            if add_users_to_stream(stream_name, group):
+                notify_users(stream_name, group)
+                streams.append(stream_name)
         return streams
 
     def next_step(self):
-        #Passe à l'étape suivante.
-        print("Passage à l'étape suivante")
+        print("Passage à l'étape suivante...")
         users = list(self.subscribers.keys())
         if len(users) <= self.max_per_group:
-            return False  #Fin
-
-        # Sélectionner les utilisateurs pour l'étape suivante
-        selected_users = random.sample(users, min(self.num_pass * (len(users) // self.max_per_group, len(users))))
-
-        # Mettre à jour la liste des inscrits
+            return False
+        selected_users = random.sample(users, min(self.num_pass * (len(users) // self.max_per_group), len(users)))
         self.subscribers = {user: self.subscribers[user] for user in selected_users}
         self.step += 1
         return True
 
+    def get_status(self):
+        users = list(self.subscribers.keys())
+        if self.creator_email not in users:
+            users.append(self.creator_email)
+        groups = [users[i:i + self.max_per_group] for i in range(0, len(users), self.max_per_group)]
+        for group in groups:
+            group.append(self.creator_email)
+        info = f"Nom: {self.name}\nÉtape: {self.step}\nFin inscription: {self.end_date}\nTemps entre étapes: {self.time_between_steps}\nNb à sélectionner: {self.num_pass}\n"
+        info += f"Nombre de groupes: {len(groups)}\n"
+        for idx, group in enumerate(groups):
+            info += f"Groupe {idx + 1}: {', '.join(group)}\n"
+        return info
+    
+
+    def start_debate_process(self):
+        def run_steps():
+            while True:
+                print(f"Attente de {self.time_between_steps} avant la prochaine étape...")
+                time.sleep(self.time_between_steps.total_seconds())
+
+                if not self.next_step():
+                    print(f"Débat '{self.name}' terminé. Plus qu’un seul groupe.")
+                    client.send_message({
+                        "type": "private",
+                        "to": self.creator_email,
+                        "content": f"Débat '{self.name}' terminé. Plus qu’un seul groupe.",
+                    })
+                    break
+
+                print(f"Étape {self.step} du débat '{self.name}'")
+                groups = self.split_into_groups()
+                self.create_streams_for_groups(groups)
+
+                client.send_message({
+                    "type": "private",
+                    "to": self.creator_email,
+                    "content": f"Étape {self.step} démarrée pour le débat '{self.name}'.",
+                })
+
+        threading.Thread(target=run_steps).start()
+    
 # Fonctions utilitaires
-def create_stream(stream_name):
-    #Crée un stream dans Zulip.
-    print(f"Création d'un channel : {stream_name}")
-    # Utiliser add_subscriptions pour créer un stream
-    result = get_client().add_subscriptions(
-        streams=[{
-            "name": stream_name,
-            "description": f"Groupe pour l'objet D '{stream_name}'",
-            "invite_only": True,  # Stream privé
-            "history_public_to_subscribers": True,  # Historique partagé
-        }]
-    )
-    if result["result"] == "success":
-        print(f"Stream '{stream_name}' créé avec succès.")
-        return True
-    else:
-        print(f"Erreur lors de la création du stream '{stream_name}': {result.get('msg', 'Pas de message d\'erreur')}")
-        return False
     
 def add_users_to_stream(stream_name, user_emails):
-    #Ajoute des utilisateurs à un stream.
     print(f"Ajout de {user_emails} dans {stream_name}")
-    user_ids = [get_user_id(email) for email in user_emails]
-    print(f"Affichage de tous les email #{get_all_zulip_user_emails()}")
-    if None in user_ids:
-        print(f"Erreur : Impossible de récupérer l'ID d'un ou plusieurs utilisateurs.")
+    user_ids = [get_user_id(email) for email in user_emails if get_user_id(email)]
+    if not user_ids:
         return False
-
-    # Ajouter les utilisateurs au stream
-    result = client.add_subscriptions(
-        streams=[{"name": stream_name}],
-        principals=user_ids,
-    )
-    if result["result"] == "success":
-        print(f"Utilisateurs ajoutés au stream '{stream_name}'.")
-        return True
-    else:
-        print(f"Erreur lors de l'ajout des utilisateurs au stream '{stream_name}': {result.get('msg', 'Pas de message d\'erreur')}")
+    try:
+        result = client.add_subscriptions(
+            streams=[{"name": stream_name}],
+            principals=user_ids,
+        )
+        print(f"Résultat ajout utilisateurs: {result}")
+        return result["result"] == "success"
+    except Exception as e:
+        print(f"Erreur lors de l'ajout des utilisateurs : {e}")
         return False
 
 def notify_users(stream_name, user_emails):
@@ -135,12 +148,7 @@ def is_valid_zulip_email(email):
     return email in [u["email"] for u in users]
 
 def get_user_id(user_email):
-    #Récupère l'ID d'un utilisateur à partir de son email.
-    request = {
-        "client_gravatar": True,
-        "include_custom_profile_fields": False,
-    }
-    result = get_client().get_members(request)
+    result = client.get_members()
     for user in result["members"]:
         if user["email"] == user_email:
             return user["user_id"]
@@ -153,82 +161,86 @@ def get_all_zulip_user_emails():
 
 
 
-# Gestion des objets D
-objects_D = {}
+
+# Gestion des débats
+listeDebat = {}
 
 def handle_message(msg):
-    #Gère les messages reçus par le bot.
-    print(f"Message reçu")
+    print("Message reçu")
     content = msg["content"].strip()
     user_email = msg["sender_email"]
 
     if content.startswith("@créer"):
-        print("On est dans créer là")
+        print("Commande : créer")
         params = content.split()
         if len(params) < 6:
-            get_client().send_message({
+            client.send_message({
                 "type": "private",
                 "to": user_email,
-                "content": "Usage : @créer <nom> <max_par_groupe> <jours_avant_fin> <jours_entre_étapes> <num_pass>",
+                "content": "Usage : @créer <nom> <max_par_groupe> <minutes_avant_fin> <minutes_entre_étapes> <num_pass>",
             })
             return
-
         name = params[1]
         max_per_group = int(params[2])
         end_date = datetime.now() + timedelta(minutes=int(params[3]))
         time_between_steps = timedelta(minutes=int(params[4]))
         num_pass = int(params[5])
+        listeDebat[name] = Debat(name, user_email, max_per_group, end_date, time_between_steps, num_pass)
+        client.send_message({"type": "private", "to": user_email,
+                             "content": f"Débat '{name}' créé avec succès."})
 
-        objects_D[name] = ObjectD(name, user_email, max_per_group, end_date, time_between_steps, num_pass)
-        get_client().send_message({
-            "type": "private",
-            "to": user_email,
-            "content": f"Objet D '{name}' créé avec succès.",
-        })
+    elif content.startswith("@configurer"):
+        print("Commande : configurer")
+        try:
+            config_json = json.loads(content.replace("@configurer", "").strip())
+            name = config_json["nom"]
+            obj = Debat(
+                name,
+                user_email,
+                config_json["max_par_groupe"],
+                datetime.now() + timedelta(minutes=config_json["minutes_avant_fin"]),
+                timedelta(minutes=config_json["minutes_entre_étapes"]),
+                config_json["num_pass"]
+            )
+            listeDebat[name] = obj
+            client.send_message({"type": "private", "to": user_email,
+                                 "content": f"Débat '{name}' configuré avec succès."})
+        except Exception as e:
+            client.send_message({"type": "private", "to": user_email, "content": f"Erreur dans la configuration : {str(e)}"})
 
     elif content.startswith("@s'inscrire"):
-        print("Et ici dans s'inscrire")
+        print("Commande : s'inscrire")
         params = content.split()
         if len(params) < 2:
-            get_client().send_message({
-                "type": "private",
-                "to": user_email,
-                "content": "Usage : @s'inscrire <nom>",
-            })
             return
-
         name = params[1]
-        if name not in objects_D:
-            get_client().send_message({
-                "type": "private",
-                "to": user_email,
-                "content": f"L'objet D '{name}' n'existe pas.",
-            })
+        if name not in listeDebat:
             return
+        listeDebat[name].add_subscriber(user_email, {"name": "Utilisateur"})
+        client.send_message({"type": "private", "to": user_email,
+                             "content": f"Inscription au débat '{name}' confirmée."})
 
-        objects_D[name].add_subscriber(user_email, {"name": "John Doe"})  # Remplace par les infos réelles
-        get_client().send_message({
-            "type": "private",
-            "to": user_email,
-            "content": f"Vous êtes inscrit à l'objet D '{name}'.",
-        })
+    elif content.startswith("@état"):
+        print("Commande : état")
+        params = content.split()
+        if len(params) < 2:
+            return
+        name = params[1]
+        if name in listeDebat:
+            status = listeDebat[name].get_status()
+            client.send_message({"type": "private", "to": user_email, "content": status})
 
-    elif content.startswith("@continuer"):
-        get_client().send_message({
-            "type": "private",
-            "to": user_email,
-            "content": "Redirection vers Zulip...",
-        })
 
 def check_and_create_channels():
     #Vérifie si la période d'inscription est terminée et crée les channels si nécessaire.
-    for name, obj in objects_D.items():
+    for name, obj in listeDebat.items():
         if datetime.now(timezone.utc) > obj.end_date and not obj.channels_created:
             # Créer les channels et répartir les utilisateurs
             groups = obj.split_into_groups()
             obj.create_streams_for_groups(groups)
             obj.channels_created = True  # Marquer que les channels ont été créés
             print(f"Channels créés pour l'objet D '{name}'.")
+            obj.start_debate_process()  # Démarrer le processus de débat
 
 def message_listener():
     #Fonction pour écouter les messages entrants.
@@ -241,7 +253,7 @@ def create_debat():
             # Créer le débat ici
             print(f"Création du débat : {debat.title}")
             # Exemple de création d'un débat
-            objects_D[debat.title] = ObjectD(debat.title, debat.creator_email, debat.max_per_group, debat.end_date, debat.time_between_round, debat.num_pass)
+            listeDebat[debat.title] = ObjectD(debat.title, debat.creator_email, debat.max_per_group, debat.end_date, debat.time_between_round, debat.num_pass)
             # Mettre à jour le statut du débat dans la base de données
             debat.debat_created = True
             debat.save()
@@ -254,7 +266,7 @@ def add_user():
                 if not user.is_register:
                     # Ajouter l'utilisateur ici
                     print(f"Ajout de l'utilisateur : {user.email}")
-                    objects_D[debat.title].add_subscriber(user.email, {"name": "John Doe"})
+                    listeDebat[debat.title].add_subscriber(user.email, {"name": "John Doe"})
                     user.is_register = True
                     user.save()
 
@@ -271,12 +283,10 @@ def main_loop():
         # Vérifie si la période d'inscription est terminée et crée les channels si nécessaire
         check_and_create_channels()
         
-        # Attend quelques secondes avant de recommencer
-        time.sleep(10)  # Attendre 10 secondes
-        print(i)
-        #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
-        #print(f"Affichager de la base de donnée : {Debat.objects.all()}")
         print(get_all_zulip_user_emails())
+        
+           #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
+        #print(f"Affichager de la base de donnée : {Debat.objects.all()}")
         #cli = client.get_profile()
         #members = client.get_members()
         #print(members)
@@ -291,13 +301,11 @@ def main_loop():
 
         print("Bot owner email:", owner_email)
         """
+        # Attend quelques secondes avant de recommencer
+        time.sleep(10)  # Attendre 10 secondes
+        
         i+=1
 
-# Démarrer la boucle principale
 if __name__ == "__main__":
-    # Lancer la gestion des messages dans un thread séparé
-    message_thread = threading.Thread(target=message_listener)
-    message_thread.start()
-
-    # Démarrer la boucle principale
+    threading.Thread(target=message_listener).start()
     main_loop()
