@@ -17,6 +17,7 @@
 		<ul>
 			<li><a href="/diapyr_debat/">Créer un débat</a></li>
 			<li><a href="/diapyr_join_debat/">Rejoindre un débat</a></li>
+			<li><a href="{{ url('home') }}">Accueil Zulip</a></li>
 		</ul>
 	</nav>	
 </header>
@@ -32,7 +33,7 @@
 			{% endif %}
 			{% for deb in debat%}
 				<li class="debate-item">
-					<strong>{{ deb.title}}</strong>
+					<strong>{{ deb.title}} - </strong>
 					Description: {{	deb.description }}
 					Date de fin: {{ deb.end_date }}
 				</li>
