@@ -11,7 +11,8 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
     View to render the debate form page and handle POST requests.
     """
     print('La méthode de requête est : ', request.method)
-    print('Les données POST sont : ', request.POST)  
+    print('Les données POST sont : ', request.POST) 
+    #Enregistrement des champs 
     if request.method == "POST":
         title = request.POST.get('nom', '').strip()
         description = request.POST.get('description', '').strip()
@@ -25,7 +26,7 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
             return HttpResponse("Invalid form data. Please fill out all fields correctly.", status=400)
 
         end_date = datetime.now() + timedelta(minutes=int(end_date_str))
-
+        # Initialisation d'un objet debat.
         Debat.objects.create(
             title=title,
             description=description,

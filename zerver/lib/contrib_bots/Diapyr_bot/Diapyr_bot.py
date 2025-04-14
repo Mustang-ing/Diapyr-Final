@@ -15,7 +15,7 @@ from zerver.models.debat import Debat,Participant
 # Configuration du bot
 client = None
 
-def get_client():
+def get_client() -> None:
     #Initialise le client Zulip.
     global client
     if client is None:
@@ -24,7 +24,7 @@ def get_client():
     return client
 
 class ObjectD:
-    def __init__(self, name, creator_email, max_per_group, end_date, time_between_steps, num_pass):
+    def __init__(self, name: str , creator_email: str , max_per_group: str , end_date: datetime, time_between_steps: timedelta, num_pass: int) -> None:
         self.name = name
         self.creator_email = creator_email
         self.max_per_group = max_per_group
@@ -36,12 +36,12 @@ class ObjectD:
         self.channels_created = False
         print(f"Création d'un objet débat : {name}")
 
-    def add_subscriber(self, user_email, user_info):
+    def add_subscriber(self, user_email: str , user_info: dict[str, str]) -> None:
         #Ajoute un utilisateur à la liste des inscrits.
         self.subscribers[user_email] = user_info
         print(f"Ajout du participant {user_email}")
 
-    def split_into_groups(self):
+    def split_into_groups(self) -> list[list[str]]:
         print("Répartition des utilisateurs en groupes...")
         users = list(self.subscribers.keys())
         if self.creator_email in users:
@@ -52,7 +52,8 @@ class ObjectD:
             group.append(self.creator_email)  # Ajout fictif du créateur
         return groups
     
-    def create_streams_for_groups(self, groups):
+    def create_streams_for_groups(self, groups: list[list[str]]) -> list[str]:
+        #Crée des streams pour chaque groupe et ajoute les utilisateurs.
         print("Ajout des utilisateurs dans les streams existants...")
         streams = []
         for i, group in enumerate(groups):
@@ -63,7 +64,7 @@ class ObjectD:
                 streams.append(stream_name)
         return streams
 
-    def next_step(self):
+    def next_step(self) -> bool:
         print("Passage à l'étape suivante...")
         users = list(self.subscribers.keys())
         if len(users) <= self.max_per_group:
@@ -73,7 +74,7 @@ class ObjectD:
         self.step += 1
         return True
 
-    def get_status(self):
+    def get_status(self) -> str:
         users = list(self.subscribers.keys())
         if self.creator_email not in users:
             users.append(self.creator_email)
@@ -87,8 +88,8 @@ class ObjectD:
         return info
     
 
-    def start_debate_process(self):
-        def run_steps():
+    def start_debate_process(self) -> None:
+        def run_steps() -> None:
             while True:
                 print(f"Attente de {self.time_between_steps} avant la prochaine étape...")
                 time.sleep(self.time_between_steps.total_seconds())
@@ -116,7 +117,7 @@ class ObjectD:
     
 # Fonctions utilitaires
     
-def add_users_to_stream(stream_name, user_emails):
+def add_users_to_stream(stream_name: str, user_emails: list[str]) -> bool:
     print(f"Ajout de {user_emails} dans {stream_name}")
     user_ids = [get_user_id(email) for email in user_emails if get_user_id(email)]
     if not user_ids:
@@ -132,7 +133,7 @@ def add_users_to_stream(stream_name, user_emails):
         print(f"Erreur lors de l'ajout des utilisateurs : {e}")
         return False
 
-def notify_users(stream_name, user_emails):
+def notify_users(stream_name: str, user_emails: list[str]) -> None:
     #Notifie les utilisateurs de leur affectation à un groupe.
     print(f"Notification de {user_emails} dans {stream_name}")
     for email in user_emails:
@@ -143,12 +144,8 @@ def notify_users(stream_name, user_emails):
         }
         get_client().send_message(message)
 
-
-def is_valid_zulip_email(email):
-    users = get_client().get_members()["members"]
-    return email in [u["email"] for u in users]
-
-def get_user_id(user_email):
+def get_user_id(user_email: str) -> str:
+    #Récupère l'ID utilisateur à partir de l'email.
     result = client.get_members()
     for user in result["members"]:
         if user["email"] == user_email:
@@ -156,7 +153,8 @@ def get_user_id(user_email):
     return None
 
 
-def get_email_by_full_name(full_name):
+def get_email_by_full_name(full_name: str) -> str:
+    #Récupère l'email à partir du nom complet.
     result = client.get_members()
     for user in result['members']:
         if user['full_name'].strip().lower() == full_name.strip().lower():
@@ -174,7 +172,7 @@ def get_all_zulip_user_emails():
 # Gestion des débats
 listeDebat = {}
 
-def handle_message(msg):
+def handle_message(msg: dict[str, str]) -> None:
     print("Message reçu")
     print(msg)
     content = msg["content"].strip()
@@ -241,7 +239,7 @@ def handle_message(msg):
             client.send_message({"type": "private", "to": user_email, "content": status})
 
 
-def check_and_create_channels():
+def check_and_create_channels() -> None:
     #Vérifie si la période d'inscription est terminée et crée les channels si nécessaire.
     for name, obj in listeDebat.items():
         if datetime.now(timezone.utc) > obj.end_date and not obj.channels_created:
@@ -252,12 +250,12 @@ def check_and_create_channels():
             print(f"Channels créés pour l'objet D '{name}'.")
             obj.start_debate_process()  # Démarrer le processus de débat
 
-def message_listener():
+def message_listener() -> None:
     #Fonction pour écouter les messages entrants.
     print("Démarrage de l'écoute des messages...")
     get_client().call_on_each_message(handle_message)
 
-def create_debat():
+def create_debat() -> None:
     for debat in Debat.objects.all():
         if not debat.debat_created:
             # Créer le débat ici
@@ -269,7 +267,7 @@ def create_debat():
             debat.save()
             print(f"Débat créé : {debat.title}")
 
-def add_user():
+def add_user() -> None:
     for debat in Debat.objects.all():
         if debat.debat_created:
             for user in debat.debat_participant.all():
@@ -277,14 +275,14 @@ def add_user():
                     # Ajouter l'utilisateur ici
                     print(f"Ajout de l'utilisateur : {user.pseudo}")
                     user.email = get_email_by_full_name(user.pseudo)
-                    if(get_email_by_full_name(user.pseudo) != None):
+                    if(user.email != None):
                         listeDebat[debat.title].add_subscriber(user.email, {"name": user.pseudo})
                         user.is_register = True
                         user.save()
                     else: 
                         print(f"Utilisateur {user.pseudo} non trouvé dans Zulip.")
 
-def main_loop():
+def main_loop() -> None:
     #Boucle principale du bot.
     print("Démarrage de la boucle principale...")
     i=0
