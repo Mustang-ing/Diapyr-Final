@@ -19,7 +19,7 @@ def get_client() -> None:
     #Initialise le client Zulip.
     global client
     if client is None:
-        client = zulip.Client(config_file="zuliprc.txt")
+        client = zulip.Client(config_file="zerver/lib/contrib_bots/Diapyr_bot/zuliprc.txt")
         print("Client Zulip initialisé avec succès !")
     return client
 
@@ -256,6 +256,7 @@ def message_listener() -> None:
     get_client().call_on_each_message(handle_message)
 
 def create_debat() -> None:
+    print("Vérification des débats à créer...")
     for debat in Debat.objects.all():
         if not debat.debat_created:
             # Créer le débat ici
@@ -265,10 +266,13 @@ def create_debat() -> None:
             # Mettre à jour le statut du débat dans la base de données
             debat.debat_created = True
             debat.save()
+            print(listeDebat)
             print(f"Débat créé : {debat.title}")
 
 def add_user() -> None:
+    print("Vérification des utilisateurs à ajouter...")
     for debat in Debat.objects.all():
+        print(f"Vérification des utilisateurs pour le débat : {debat.title}")
         if debat.debat_created:
             for user in debat.debat_participant.all():
                 if not user.is_register:
@@ -276,6 +280,7 @@ def add_user() -> None:
                     print(f"Ajout de l'utilisateur : {user.pseudo}")
                     user.email = get_email_by_full_name(user.pseudo)
                     if(user.email != None):
+                        print(listeDebat)
                         listeDebat[debat.title].add_subscriber(user.email, {"name": user.pseudo})
                         user.is_register = True
                         user.save()
@@ -291,6 +296,7 @@ def main_loop() -> None:
         #On génére les debats qui n'ont pas encore été génére depuis la table debat
         create_debat()
         #On ajoute les utilisateurs qui ne sont pas encore inscrits
+        #print(listeDebat)
         add_user()
         # Vérifie si la période d'inscription est terminée et crée les channels si nécessaire
         check_and_create_channels()
