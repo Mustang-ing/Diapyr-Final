@@ -35,7 +35,7 @@
 				<li class="debate-item">
 					<strong>{{ deb.title}} - </strong>
 					Description: {{	deb.description }}
-					Date de debut: {{ deb.end_date }}
+					Date de debut: {{  deb.end_date.strftime('%d/%m/%Y %H:%M')  }}
 				</li>
 			{% endfor %}
 		</ul>
