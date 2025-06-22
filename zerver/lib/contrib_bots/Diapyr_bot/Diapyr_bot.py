@@ -42,15 +42,35 @@ class ObjectD:
         print(f"Ajout du participant {user_email}")
 
     def split_into_groups(self) -> list[list[str]]:
-        print("Répartition des utilisateurs en groupes...")
         users = list(self.subscribers.keys())
-        if self.creator_email in users:
-            users.remove(self.creator_email)
-        random.shuffle(users)
-        groups = [users[i:i + self.max_per_group] for i in range(0, len(users), self.max_per_group)]
-        for group in groups:
-            group.append(self.creator_email)  # Ajout fictif du créateur
+        # Groupes aléatoires
+        random.shuffle(users)  
+        
+        n = len(users)  # Nombre total de participants
+        m = self.max_per_group  # Taille maximale par groupe 
+        
+        num_groups = (n + m - 1) // m  # On fait + m pour l'arrondi au supérieur
+        
+        min_per_group = n // num_groups  # Nouvelle taille par groupe (minimum)
+        r = n % num_groups   # Le reste (nombre de groupe "problématique")
+        
+        groups = []
+        start = 0
+        for i in range(num_groups):
+            # Tant que le nombre de groupe i n'est pas superieurs au nombre de groupe "problématique" r, on rajoute 1
+            group_size = min_per_group + (1 if i < r else 0)
+            print(f"group_size :{group_size}\n")
+            # Garantie pour les groupes solitair (5//3 serait un probleme par exemple)
+            if i == num_groups - 1 and group_size == 1:
+                # Fusion avec le groupe précédent
+                groups[-1].append(users[-1])
+            else:
+                groups.append(users[start:start+group_size])
+            start += r
+    
         return groups
+
+        
     
     def create_streams_for_groups(self, groups: list[list[str]]) -> list[str]:
         #Crée des streams pour chaque groupe et ajoute les utilisateurs.
@@ -64,13 +84,19 @@ class ObjectD:
                 streams.append(stream_name)
         return streams
 
-    def next_step(self) -> bool:
-        print("Passage à l'étape suivante...")
+    def next_step(self):
         users = list(self.subscribers.keys())
-        if len(users) <= self.max_per_group:
+        #On vérifie si leurs nombre est assez grand pour etre divisé OU que le nombre de passes choisit est inférieur OU au moins 2 utilisateurs
+        if len(users) <= self.max_per_group or self.step >= self.num_pass or len(users) < 2:
             return False
-        selected_users = random.sample(users, min(self.num_pass * (len(users) // self.max_per_group), len(users)))
-        self.subscribers = {user: self.subscribers[user] for user in selected_users}
+        
+        eliminated = random.sample(users,self.max_per_group)
+        users_to_keep = [u for u in users if u not in eliminated]
+
+        if len(users_to_keep) <= self.max_per_group: #Si apres la suppresion enleve trop de personne
+            return False
+        
+        self.subscribers = {u: self.subscribers[u] for u in users_to_keep}
         self.step += 1
         return True
 
