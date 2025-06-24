@@ -290,15 +290,17 @@ def add_user() -> None:
 def main_loop() -> None:
     #Boucle principale du bot.
     print("Démarrage de la boucle principale...")
-    i=0
+    i=0 #Utilité ?
+    get_client()  
     while True:
 
+        #print(client.get_members())
         #On génére les debats qui n'ont pas encore été génére depuis la table debat
         create_debat()
         #On ajoute les utilisateurs qui ne sont pas encore inscrits
         #print(listeDebat)
         add_user()
-        # Vérifie si la période d'inscription est terminée et crée les channels si nécessaire
+        # Vérifie si la période d'sinscription est terminée et crée les channels si nécessaire
         check_and_create_channels()
         
         #print(get_all_zulip_user_emails())
@@ -322,7 +324,7 @@ def main_loop() -> None:
         """
         # Attend quelques secondes avant de recommencer
         time.sleep(10)  # Attendre 10 secondes
-        #print(client.get_members())
+        
         
         i+=1
 
