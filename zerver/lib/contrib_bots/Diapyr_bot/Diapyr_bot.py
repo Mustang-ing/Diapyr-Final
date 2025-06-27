@@ -29,7 +29,8 @@ class ObjectD:
         self.creator_email = creator_email
         self.max_per_group = max_per_group
         self.end_date = end_date
-        self.time_between_steps = time_between_steps if isinstance(time_between_steps, timedelta) else timedelta(seconds=int(time_between_steps))
+        self.time_between_steps = time_between_steps if isinstance(time_between_steps, timedelta) else timedelta(minutes=int(time_between_steps))
+        #Il pourrait être intéressant de ettre un contrôle sur la valeur du time between_step 
         self.num_pass = num_pass
         self.step = 1
         self.subscribers = {}
@@ -49,7 +50,7 @@ class ObjectD:
         random.shuffle(users)
         groups = [users[i:i + self.max_per_group] for i in range(0, len(users), self.max_per_group)]
         for group in groups:
-            group.append(self.creator_email)  # Ajout fictif du créateur
+            group.append(self.creator_email)  # Ajout fictif du créateur - Pourquoi ne pas mettre l'admin dans chaque groupe ?
         return groups
     
     def create_streams_for_groups(self, groups: list[list[str]]) -> list[str]:
@@ -57,7 +58,7 @@ class ObjectD:
         print("Ajout des utilisateurs dans les streams existants...")
         streams = []
         for i, group in enumerate(groups):
-            stream_name = self.name + self.step * "I" + f"{i+1}"
+            stream_name = self.name + self.step * "I" + f"{i+1}" #Changer le nom pour plus de clarté
             print(f"Tentative d'ajout dans le stream : {stream_name}")
             if add_users_to_stream(stream_name, group):
                 notify_users(stream_name, group)
@@ -67,7 +68,7 @@ class ObjectD:
     def next_step(self) -> bool:
         print("Passage à l'étape suivante...")
         users = list(self.subscribers.keys())
-        if len(users) <= self.max_per_group:
+        if len(users) <= self.max_per_group: #  Si le total d'utlisateur restant est inférieur à max_per_group, on ne peut pas continuer
             return False
         selected_users = random.sample(users, min(self.num_pass * (len(users) // self.max_per_group), len(users)))
         self.subscribers = {user: self.subscribers[user] for user in selected_users}
@@ -88,7 +89,7 @@ class ObjectD:
         return info
     
 
-    def start_debate_process(self) -> None:
+    def start_debate_process(self) -> None: #N'aurait t'on pas pu faire une seule fonction pour gérer les étapes ? Ou voir les décorateurs ?
         def run_steps() -> None:
             while True:
                 print(f"Attente de {self.time_between_steps} avant la prochaine étape...")
@@ -127,7 +128,7 @@ def add_users_to_stream(stream_name: str, user_emails: list[str]) -> bool:
             streams=[{"name": stream_name}],
             principals=user_ids,
         )
-        print(f"Résultat ajout utilisateurs: {result}")
+        print(f"Ajout réussi")
         return result["result"] == "success"
     except Exception as e:
         print(f"Erreur lors de l'ajout des utilisateurs : {e}")
@@ -140,7 +141,7 @@ def notify_users(stream_name: str, user_emails: list[str]) -> None:
         message = {
             "type": "private",
             "to": email,
-            "content": f"Vous avez été affecté au groupe '{stream_name}'.",
+            "content": f"Vous avez été affecté au groupe '{stream_name}'.",#Plus de clarté quelle groupe en particilier
         }
         get_client().send_message(message)
 
@@ -155,7 +156,11 @@ def get_user_id(user_email: str) -> str:
 
 def get_email_by_full_name(full_name: str) -> str:
     #Récupère l'email à partir du nom complet.
-    result = client.get_members()
+    try:
+        result = client.get_members()
+    except AttributeError:
+        print(f"Erreur lors de la récupération des membres. La variable ""client"" est elle initialisé ? : {client}")
+        return None
     for user in result['members']:
         if user['full_name'].strip().lower() == full_name.strip().lower():
             return user['email']
@@ -279,7 +284,7 @@ def add_user() -> None:
                     # Ajouter l'utilisateur ici
                     print(f"Ajout de l'utilisateur : {user.pseudo}")
                     user.email = get_email_by_full_name(user.pseudo)
-                    if(user.email != None):
+                    if(user.email != None): #Controle inutile à ce niveau là sa plante avant
                         print(listeDebat)
                         listeDebat[debat.title].add_subscriber(user.email, {"name": user.pseudo})
                         user.is_register = True
@@ -291,8 +296,19 @@ def main_loop() -> None:
     #Boucle principale du bot.
     print("Démarrage de la boucle principale...")
     i=0 #Utilité ?
-    get_client()  
+    #get_client()  
     while True:
+
+        try:
+            if len(listeDebat) == 0:
+                print("Taille : ", len(listeDebat))
+                raise Exception("Aucun débat n'est disponible dans listeDebat.")
+            # Affiche les débats en cours
+            for name, obj in listeDebat.items():
+                print(f"Objet D : {name}")
+                print(obj.get_status())
+        except Exception as e:
+            print(f"Erreur : {e}")
 
         #print(client.get_members())
         #On génére les debats qui n'ont pas encore été génére depuis la table debat
@@ -302,7 +318,9 @@ def main_loop() -> None:
         add_user()
         # Vérifie si la période d'sinscription est terminée et crée les channels si nécessaire
         check_and_create_channels()
-        
+
+       
+
         #print(get_all_zulip_user_emails())
         
         #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
