@@ -42,34 +42,31 @@ class ObjectD:
         self.subscribers[user_email] = user_info
         print(f"Ajout du participant {user_email}")
 
+
     def split_into_groups(self) -> list[list[str]]:
         users = list(self.subscribers.keys())
-        # Groupes aléatoires
         random.shuffle(users)  
-        
-        n = len(users)  # Nombre total de participants
-        m = self.max_per_group  # Taille maximale par groupe 
-        
-        num_groups = (n + m - 1) // m  # On fait + m pour l'arrondi au supérieur
-        
-        min_per_group = n // num_groups  # Nouvelle taille par groupe (minimum)
-        r = n % num_groups   # Le reste (nombre de groupe "problématique")
-        
+    
+        n = len(users) 
+        m = self.max_per_group  
+    
+
+
+        num_groups = n // m
+     
+        if n % m > 0 and (n % m) < (m / 2) and num_groups > 1:  #Si il existe au moin 1 groupe problématique et qu'il est trop petit, on supprime un groupe
+            num_groups -= 1  # On réduit pour éviter un groupe trop petit
+
+        min_per_group = n // num_groups
+        r = n % num_groups
         groups = []
         start = 0
         for i in range(num_groups):
-            # Tant que le nombre de groupe i n'est pas superieurs au nombre de groupe "problématique" r, on rajoute 1
-            group_size = min_per_group + (1 if i < r else 0)
-            print(f"group_size :{group_size}\n")
-            # Garantie pour les groupes solitair (5//3 serait un probleme par exemple)
-            if i == num_groups - 1 and group_size == 1:
-                # Fusion avec le groupe précédent
-                groups[-1].append(users[-1])
-            else:
-                groups.append(users[start:start+group_size])
-            start += r
-    
+            group_size = min_per_group + (1 if i < r else 0) # On fait +1 tant que le nombre de peronne problématique n'est pas traité 
+            groups.append(users[start:start + group_size])
+            start += group_size
         return groups
+            
 
         
     
@@ -83,9 +80,21 @@ class ObjectD:
             if add_users_to_stream(stream_name, group):
                 notify_users(stream_name, group)
                 streams.append(stream_name)
+               
         return streams
 
     def next_step(self):
+        num_groups = len(self.subscribers) //  self.max_per_group
+        for i in range(num_groups):  #On récupere le nombre de groupe de l'étape acutel afin d'avoir leurs stream 
+            stream_name = f"{self.name}{'I'*self.step}{i+1}" #On prend leurs noms 
+            try:
+                stream_id = client.get_stream_id(stream_name)["stream_id"]
+                client.delete_stream(stream_id)
+                print(f" Archivage du stream {stream_name} ")
+            except Exception as e:
+                print(f" Erreur sur le stream{stream_name} |  {str(e)}")
+
+                
         users = list(self.subscribers.keys())
         #On vérifie si leurs nombre est assez grand pour etre divisé OU que le nombre de passes choisit est inférieur OU au moins 2 utilisateurs
         if len(users) <= self.max_per_group or self.step >= self.num_pass or len(users) < 2:
@@ -123,12 +132,28 @@ class ObjectD:
 
                 if not self.next_step():
                     print(f"Débat '{self.name}' terminé. Plus qu’un seul groupe.")
-                    client.send_message({
-                        "type": "private",
-                        "to": self.creator_email,
-                        "content": f"Débat '{self.name}' terminé. Plus qu’un seul groupe.",
-                    })
+                    users = list(self.subscribers.keys())
+                    print(f"Liste des users: {users}")  
+                    for mail in users:
+                        print(f"Envoi à: {mail}")  
+                        client.send_message({
+                            "type": "private",
+                            "to": mail,
+                            "content": f"Le débat'{self.name}' est terminé. Merci d'avoir participé !",
+                        })
+                    try:
+                        debat = Debat.objects.get(title=self.name)
+                        debat.delete()
+                    except Debat.DoesNotExist:
+                        print(f"Erreur: Débat '{self.name}' non trouvé dans la base de données.")
+                    except Exception as e:
+                        print(f"Erreur lors de la suppression du débat: {str(e)}")
+                    print(f"Suppression du débat{self.name}")                    
+                    # Suppression de la liste en mémoire
+                    if self.name in listeDebat:
+                        del listeDebat[self.name]
                     break
+            
 
                 print(f"Étape {self.step} du débat '{self.name}'")
                 groups = self.split_into_groups()
@@ -139,7 +164,6 @@ class ObjectD:
                     "to": self.creator_email,
                     "content": f"Étape {self.step} démarrée pour le débat '{self.name}'.",
                 })
-
         threading.Thread(target=run_steps).start()
     
 # Fonctions utilitaires
@@ -300,23 +324,40 @@ def create_debat() -> None:
             print(listeDebat)
             print(f"Débat créé : {debat.title}")
 
+
 def add_user() -> None:
     print("Vérification des utilisateurs à ajouter...")
+    current_time = datetime.now(timezone.utc)
     for debat in Debat.objects.all():
-        print(f"Vérification des utilisateurs pour le débat : {debat.title}")
-        if debat.debat_created:
-            for user in debat.debat_participant.all():
-                if not user.is_register:
-                    # Ajouter l'utilisateur ici
-                    print(f"Ajout de l'utilisateur : {user.pseudo}")
-                    user.email = get_email_by_full_name(user.pseudo)
-                    if(user.email != None): #Controle inutile à ce niveau là sa plante avant
-                        print(listeDebat)
-                        listeDebat[debat.title].add_subscriber(user.email, {"name": user.pseudo})
-                        user.is_register = True
-                        user.save()
-                    else: 
-                        print(f"Utilisateur {user.pseudo} non trouvé dans Zulip.")
+        print(f"Vérification pour le débat : {debat.title}")
+        if debat.debat_created and debat.title in listeDebat:
+            obj = listeDebat[debat.title]
+            # Vérifie si la période d'inscription est terminée
+            if current_time > obj.end_date:
+
+                #-------------------------Partie message au créateur-------------------------------------------
+                email =""#Vide à cause du probleme de compte
+                participant = len(obj.subscribers)
+
+                message = {
+                    "type": "private",
+                    "to": email,
+                    "content": f"Vous avez crée le débat '{debat.title}' \n Il compose à présent '{participant}' personnes à son actif\n Veillez entrer le nombre d'élue à faire passer : ",
+                }
+                #-----------------------------------------------------------------------------------------------
+                
+                for user in debat.debat_participant.all():
+                    if not user.is_register:
+                        print(f"Ajout de l'utilisateur : {user.pseudo}")
+                        user.email = get_email_by_full_name(user.pseudo)
+                        if user.email is not None:
+                            obj.add_subscriber(user.email, {"name": user.pseudo})
+                            user.is_register = True
+                            user.save()
+                        else:
+                            print(f"Utilisateur {user.pseudo} non trouvé dans Zulip.")
+            else:
+                print(f"Période d'inscription toujours en cours pour '{debat.title}'. Fin prévue à {obj.end_date}.")
 
 def main_loop() -> None:
     #Boucle principale du bot.
