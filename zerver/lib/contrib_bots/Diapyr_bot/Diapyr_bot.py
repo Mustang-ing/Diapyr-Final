@@ -1,19 +1,36 @@
 import json
 import os
-import django
+import sys
+
 
 # Set the settings module from your Zulip settings (adjust path if needed)
+sys.path.append("/home/jass/Diapyr/Diapyr-Final") 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zproject.settings")
+
+import django
 django.setup()
+
 import zulip
 import random
 from datetime import datetime, timedelta, timezone
 import time
 import threading
 from zerver.models.debat import Debat,Participant
+from datetime import datetime
+import statistics
 
 # Configuration du bot
 client = None
+# Suivi de la participation des inscrits au débat (nb de caractères envoyés)
+parole_tracker = {} 
+# Limite de caractères par utilisateur
+LIMITE_PAROLE = 50  
+# Historique des messages pour stocker les horaires d'envoi de messages
+historique_messages = {}
+# Statistiques pour voir le nb de msg/caracteres envoyés:
+stats_utilisateurs = {}  # email → {"messages": 0, "caracteres": 0}
+messages_consecutifs = {"last_sender": None, "count": 0}
+
 
 def get_client() -> None:
     #Initialise le client Zulip.
@@ -120,6 +137,11 @@ class ObjectD:
 def add_users_to_stream(stream_name: str, user_emails: list[str]) -> bool:
     print(f"Ajout de {user_emails} dans {stream_name}")
     user_ids = [get_user_id(email) for email in user_emails if get_user_id(email)]
+    # Ajout de l'ID du bot lui-même
+    bot_user_id = get_user_id(get_client().get_profile()["email"])
+    if bot_user_id and bot_user_id not in user_ids:
+        user_ids.append(bot_user_id)
+
     if not user_ids:
         return False
     try:
@@ -156,6 +178,7 @@ def get_user_id(user_email: str) -> str:
 def get_email_by_full_name(full_name: str) -> str:
     #Récupère l'email à partir du nom complet.
     result = client.get_members()
+    print(result)
     for user in result['members']:
         if user['full_name'].strip().lower() == full_name.strip().lower():
             return user['email']
@@ -175,8 +198,16 @@ listeDebat = {}
 def handle_message(msg: dict[str, str]) -> None:
     print("Message reçu")
     print(msg)
+
+    # Ignorer les messages envoyés par le bot lui-même
+    if msg["sender_email"] == get_client().get_profile()["email"]:
+        return
+    
     content = msg["content"].strip()
     user_email = msg["sender_email"]
+    nb_caracteres = len(content)
+
+    now = datetime.now()
 
     if content.startswith("@créer"):
         print("Commande : créer")
@@ -237,7 +268,35 @@ def handle_message(msg: dict[str, str]) -> None:
         if name in listeDebat:
             status = listeDebat[name].get_status()
             client.send_message({"type": "private", "to": user_email, "content": status})
+    # 1. Statistiques cumulatives
+    if user_email not in stats_utilisateurs:
+        stats_utilisateurs[user_email] = {"messages": 0, "caracteres": 0}
 
+    stats_utilisateurs[user_email]["messages"] += 1
+    stats_utilisateurs[user_email]["caracteres"] += nb_caracteres
+
+    # 2. Suivi des messages consécutifs
+    if messages_consecutifs["last_sender"] == user_email:
+        messages_consecutifs["count"] += 1
+    else:
+        messages_consecutifs["last_sender"] = user_email
+        messages_consecutifs["count"] = 1
+    mediane = get_mediane_messages()
+    if len(stats_utilisateurs) > 1:
+        if stats_utilisateurs[user_email]["messages"] > mediane * 4:
+            get_client().send_message({
+                "type": "stream",
+                "to": msg["display_recipient"],
+                "topic": msg["subject"],
+                "content": f"@**{msg['sender_full_name']}** ⚠️ Vous avez largement dépassé la participation moyenne. Merci de laisser de la place aux autres."
+            })
+
+#calcul de la médiane
+def get_mediane_messages():
+    liste_messages = [data["messages"] for data in stats_utilisateurs.values()]
+    if len(liste_messages) >= 2:
+        return statistics.median(liste_messages)
+    return 1  # par défaut
 
 def check_and_create_channels() -> None:
     #Vérifie si la période d'inscription est terminée et crée les channels si nécessaire.
@@ -253,6 +312,11 @@ def check_and_create_channels() -> None:
 def message_listener() -> None:
     #Fonction pour écouter les messages entrants.
     print("Démarrage de l'écoute des messages...")
+    request = {
+        "event_types": ["message"],
+        "narrow": [],  # vide = écoute tous les messages
+        "all_public_streams": True  # écoute même les messages dans les streams publics où il est abonné
+    }
     get_client().call_on_each_message(handle_message)
 
 def create_debat() -> None:
