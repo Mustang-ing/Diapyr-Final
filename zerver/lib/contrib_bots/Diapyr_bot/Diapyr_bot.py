@@ -27,7 +27,9 @@ messages_consecutifs = {"last_sender": None, "count": 0}
 # Pour le suivi des alertes de participation faible
 dernier_alerte_utilisateur = {}  # email → datetime de la dernière alerte
 COOLDOWN_ALERTES = 300  # 5mins entre deux alertes pour le même utilisateur
-
+#pour laffichage des stat
+id_message_stats = None  # contiendra l'ID du message à mettre à jour
+stream_stats = None  # contiendra le nom du stream où poster les stats
 
 def get_client() -> None:
     #Initialise le client Zulip.
@@ -195,6 +197,12 @@ listeDebat = {}
 def handle_message(msg: dict[str, str]) -> None:
     print("Message reçu")
     print(msg)
+    
+
+
+    global id_message_stats, stream_stats
+    if stream_stats is None:
+        stream_stats = msg["display_recipient"]
 
     # Ignorer les messages envoyés par le bot lui-même
     if msg["sender_email"] == get_client().get_profile()["email"]:
@@ -203,10 +211,10 @@ def handle_message(msg: dict[str, str]) -> None:
     content = msg["content"].strip()
     user_email = msg["sender_email"]
     nb_caracteres = len(content)
-
+    user_name = msg["sender_full_name"]
     # 1. Statistiques cumulatives
     if user_email not in stats_utilisateurs:
-        stats_utilisateurs[user_email] = {"messages": 0, "caracteres": 0}
+        stats_utilisateurs[user_email] = {"messages": 0, "caracteres": 0, "name": msg["sender_full_name"]}
 
     stats_utilisateurs[user_email]["messages"] += 1
     stats_utilisateurs[user_email]["caracteres"] += nb_caracteres
@@ -279,40 +287,79 @@ def handle_message(msg: dict[str, str]) -> None:
     else:
         messages_consecutifs["last_sender"] = user_email
         messages_consecutifs["count"] = 1
-    mediane = get_mediane_messages()
-    if len(stats_utilisateurs) > 1:
-        if stats_utilisateurs[user_email]["messages"] > mediane * 2:
+    
+    # Calcul médiane unique
+    messages_counts = [v["messages"] for v in stats_utilisateurs.values()]
+    mediane = statistics.median(messages_counts) if messages_counts else 0
+
+    # Avertissement parle trop (ex: 4 fois la médiane)
+    if stats_utilisateurs[user_email]["messages"] > 4 * mediane:
+        get_client().send_message({
+            "type": "stream",
+            "to": msg["display_recipient"],
+            "topic": msg["subject"],
+            "content": f"@**{user_name}** ⚠️ Vous avez largement dépassé la participation moyenne. Merci de laisser de la place aux autres."
+        })
+
+    # Participation faible (avec cooldown)
+    active_users = {email: stats for email, stats in stats_utilisateurs.items() if stats["messages"] > 0}
+    if len(active_users) >= 3 and mediane >= 2:
+        ratio = stats_utilisateurs[user_email]["messages"] / mediane
+        maintenant = datetime.now()
+        dernier = dernier_alerte_utilisateur.get(user_email, datetime.min)
+
+        if ratio < 0.5 and (maintenant - dernier).total_seconds() > COOLDOWN_ALERTES:
+            if ratio < 0.25:
+                texte = "⚠️ **Votre participation est très faible** comparée aux autres. Votre avis est important !"
+            else:
+                texte = "💡 **Vous pourriez participer davantage** - le débat a besoin de votre voix !"
+
             get_client().send_message({
                 "type": "stream",
                 "to": msg["display_recipient"],
                 "topic": msg["subject"],
-                "content": f"@**{msg['sender_full_name']}** ⚠️ Vous avez largement dépassé la participation moyenne. Merci de laisser de la place aux autres."
+                "content": f"@**{user_name}** {texte}"
             })
-    # Participation faible : vérification immédiate à chaque message
-    active_users = {email: stats for email, stats in stats_utilisateurs.items() if stats["messages"] > 0}
+            dernier_alerte_utilisateur[user_email] = maintenant
 
-    if len(active_users) >= 3:
-        mediane = get_mediane_messages()
-        if mediane >= 2:
-            ratio = stats_utilisateurs[user_email]["messages"] / mediane
-            maintenant = datetime.now()
+    # Générer contenu stat + avertissements globaux
 
-            if ratio < 0.5:
-                dernier = dernier_alerte_utilisateur.get(user_email, datetime.min)
-                if (maintenant - dernier).total_seconds() > COOLDOWN_ALERTES:
-                    if ratio < 0.25:
-                        texte = "⚠️ **Votre participation est très faible** comparée aux autres. Votre avis est important !"
-                    else:
-                        texte = "💡 **Vous pourriez participer davantage** - le débat a besoin de votre voix !"
+    if stats_utilisateurs:
+        plus_actif = max(stats_utilisateurs.items(), key=lambda x: x[1]["messages"])
+        moins_actif = min(stats_utilisateurs.items(), key=lambda x: x[1]["messages"])
 
-                    get_client().send_message({
-                        "type": "stream",
-                        "to": msg["display_recipient"],
-                        "topic": msg["subject"],
-                        "content": f"@**{msg['sender_full_name']}** {texte}"
-                    })
-                    dernier_alerte_utilisateur[user_email] = maintenant
+        avertissements = []
+        for email, stats in stats_utilisateurs.items():
+            nom = stats["name"]
+            if stats["messages"] > 4 * mediane:
+                avertissements.append(f"⚠️ **{nom}** parle beaucoup trop, laisse un peu la place aux autres !")
+            elif stats["messages"] < mediane / 2:
+                avertissements.append(f"💡 **{nom}**, tu devrais participer un peu plus, ta voix compte !")
 
+        contenu = (
+            "**📊 Contribution**\n\n"
+            f"- 📈 Médiane des messages envoyés : **{mediane:.1f}**\n"
+            f"- 🥇 Plus actif : **{plus_actif[1]['name']}** avec **{plus_actif[1]['messages']}** messages\n"
+            f"- 💤 Moins actif : **{moins_actif[1]['name']}** avec **{moins_actif[1]['messages']}** messages\n\n"
+            + ("\n".join(avertissements) if avertissements else "👍 Tout le monde participe bien !")
+        )
+
+        if id_message_stats is None:
+            result = get_client().send_message({
+                "type": "stream",
+                "to": stream_stats,
+                "topic": "📊 Contribution",
+                "content": contenu,
+            })
+            id_message_stats = result["id"]
+        else:
+            try:
+                get_client().update_message({
+                    "message_id": id_message_stats,
+                    "content": contenu
+                })
+            except Exception as e:
+                print(f"Erreur mise à jour stats : {e}")
 
 #calcul de la médiane
 def get_mediane_messages() -> float:
@@ -324,7 +371,6 @@ def get_mediane_messages() -> float:
         return statistics.median(liste_messages)
     except statistics.StatisticsError:
         return 0
-
 
 def check_and_create_channels() -> None:
     #Vérifie si la période d'inscription est terminée et crée les channels si nécessaire.
