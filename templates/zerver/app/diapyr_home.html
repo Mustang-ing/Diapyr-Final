@@ -32,18 +32,19 @@
 					<p>Aucun débat n'a encore été créé.</p>
 			{% endif %}
 			{% for deb in debat%}
-				<li class="debate-item">
-					<strong>{{ deb.title}} - </strong>
-					Description: {{	deb.description }}
-					Date de debut: {{  deb.end_date.strftime('%d/%m/%Y %H:%M')  }}
-				</li>
+				{% if not deb.is_archived %}
+					<li class="debate-item">
+						<strong>{{ deb.title}} - </strong>
+						Description: {{	deb.description }}
+						Date de debut: {{  deb.end_date.strftime('%d/%m/%Y %H:%M')  }}
+					</li>
+				{% endif %}
 			{% endfor %}
 		</ul>
 	</div>
 </main>
 <!-- Eventuelle footer quand tu aurais appris à le possitionner correctement 
 <footer>
-		<p>&copy; 2025 Association sportive de Galilée. Tous droits réservés.</p>
 </footer> 
 -->
 

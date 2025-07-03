@@ -18,7 +18,9 @@
                 <select id="debat" name="debat" required>
                     <option value="">-- Sélectionnez --</option>
                     {% for deb in debat %}
-                        <option value="{{ deb.debat_id }}">{{ deb.title }}</option>
+                    {% if not deb.is_archived %}
+                         <option value="{{ deb.debat_id }}">{{ deb.title }}</option>
+                    {% endif %}
                     {% endfor %}
                 </select>
             </div>

@@ -36,6 +36,7 @@ class Debat(models.Model):
     date = models.DateTimeField(default=timezone.now)
     channel_created = models.BooleanField(default=False)
     debat_created = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False)
     type = models.CharField(max_length=100, choices=Debate_Kind.choices,default=Debate_Kind.General)
     debat_participant = models.ManyToManyField(Participant)
     #group = models.ForeignKey(Group, null=True, on_delete=models.SET_NULL)

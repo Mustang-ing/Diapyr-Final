@@ -51,9 +51,12 @@ class ObjectD:
         m = self.max_per_group  
     
 
-
-        num_groups = n // m
-     
+        try:
+            num_groups = n // m
+        except ZeroDivisionError:
+            print(f"Erreur : L'objet debat a {self.name} n'a pas de participants ou le nombre maximal de participants par groupe est 0 - Self.max_per_group : {self.max_per_group}- Nombre de participants : {n}")
+            return []
+        
         if n % m > 0 and (n % m) < (m / 2) and num_groups > 1:  #Si il existe au moin 1 groupe problématique et qu'il est trop petit, on supprime un groupe
             num_groups -= 1  # On réduit pour éviter un groupe trop petit
 
@@ -84,7 +87,12 @@ class ObjectD:
         return streams
 
     def next_step(self):
-        num_groups = len(self.subscribers) //  self.max_per_group
+        users = list(self.subscribers.keys())
+        if users is None or len(users) == 0:
+            print(f"Aucun utilisateur inscrit dans le débat '{self.name}'.")
+            return False
+        
+        num_groups = len(users) //  self.max_per_group
         for i in range(num_groups):  #On récupere le nombre de groupe de l'étape acutel afin d'avoir leurs stream 
             stream_name = f"{self.name}{'I'*self.step}{i+1}" #On prend leurs noms 
             try:
@@ -95,7 +103,7 @@ class ObjectD:
                 print(f" Erreur sur le stream{stream_name} |  {str(e)}")
 
                 
-        users = list(self.subscribers.keys())
+        
         #On vérifie si leurs nombre est assez grand pour etre divisé OU que le nombre de passes choisit est inférieur OU au moins 2 utilisateurs
         if len(users) <= self.max_per_group or self.step >= self.num_pass or len(users) < 2:
             return False
@@ -143,7 +151,9 @@ class ObjectD:
                         })
                     try:
                         debat = Debat.objects.get(title=self.name)
-                        debat.delete()
+                        debat.is_archived = True
+                        debat.save()
+                        print(f"Débat '{self.name}' archivé dans la base de données.")
                     except Debat.DoesNotExist:
                         print(f"Erreur: Débat '{self.name}' non trouvé dans la base de données.")
                     except Exception as e:
@@ -229,7 +239,7 @@ listeDebat = {}
 
 def handle_message(msg: dict[str, str]) -> None:
     print("Message reçu")
-    print(msg)
+    #print(msg)
     content = msg["content"].strip()
     user_email = msg["sender_email"]
 
@@ -300,6 +310,9 @@ def check_and_create_channels() -> None:
         if datetime.now(timezone.utc) > obj.end_date and not obj.channels_created:
             # Créer les channels et répartir les utilisateurs
             groups = obj.split_into_groups()
+            if groups == []:
+                print(f"Création de débat imposible pour l'objet D '{name}'. Il n'a pas de participants ou le nombre maximal de participants par groupe est 0.")
+                break
             obj.create_streams_for_groups(groups)
             obj.channels_created = True  # Marquer que les channels ont été créés
             print(f"Channels créés pour l'objet D '{name}'.")
@@ -313,7 +326,7 @@ def message_listener() -> None:
 def create_debat() -> None:
     print("Vérification des débats à créer...")
     for debat in Debat.objects.all():
-        if not debat.debat_created:
+        if not debat.debat_created and debat.is_archived == False:
             # Créer le débat ici
             print(f"Création du débat : {debat.title}")
             # Exemple de création d'un débat
@@ -330,11 +343,10 @@ def add_user() -> None:
     current_time = datetime.now(timezone.utc)
     for debat in Debat.objects.all():
         print(f"Vérification pour le débat : {debat.title}")
-        if debat.debat_created and debat.title in listeDebat:
+        if debat.debat_created and debat.title in listeDebat and not debat.is_archived:
             obj = listeDebat[debat.title]
             # Vérifie si la période d'inscription est terminée
             if current_time > obj.end_date:
-
                 #-------------------------Partie message au créateur-------------------------------------------
                 email =""#Vide à cause du probleme de compte
                 participant = len(obj.subscribers)
