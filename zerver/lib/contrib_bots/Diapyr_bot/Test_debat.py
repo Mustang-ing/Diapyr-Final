@@ -45,7 +45,7 @@ if __name__ == "__main__":
         title=f"Test Debate {num}",
         creator_email="",
         max_per_group=max_per_group,
-        end_date = datetime.now() + timedelta(seconds=30),
+        end_date = datetime.now() + timedelta(seconds=10),
         time_between_round=time_between_steps,
         num_pass=3,
         description="This is a test debate")

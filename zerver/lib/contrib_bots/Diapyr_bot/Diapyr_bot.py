@@ -1,19 +1,35 @@
 import json
 import os
-import django
+import sys
+
 
 # Set the settings module from your Zulip settings (adjust path if needed)
+sys.path.append("/home/jass/Diapyr/Diapyr-Final") 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zproject.settings")
+
+import django
 django.setup()
+
 import zulip
 import random
 from datetime import datetime, timedelta, timezone
 import time
 import threading
 from zerver.models.debat import Debat,Participant
+from datetime import datetime
+import statistics
 
 # Configuration du bot
 client = None
+# Statistiques pour voir le nb de msg/caracteres envoyés:
+stats_utilisateurs = {}  # email → {"messages": 0, "caracteres": 0}
+messages_consecutifs = {"last_sender": None, "count": 0}
+# Pour le suivi des alertes de participation faible
+dernier_alerte_utilisateur = {}  # email → datetime de la dernière alerte
+COOLDOWN_ALERTES = 300  # 5mins entre deux alertes pour le même utilisateur
+#pour laffichage des stat
+id_message_stats = None  # contiendra l'ID du message à mettre à jour
+stream_stats = None  # contiendra le nom du stream où poster les stats
 
 def get_client() -> None:
     #Initialise le client Zulip.
@@ -50,24 +66,29 @@ class ObjectD:
         n = len(users) 
         m = self.max_per_group  
     
-
+        print(f"Nombre de participants : {n}, Nombre maximal de participants par groupe : {m}")
         try:
-            num_groups = n // m
+            num_groups = (n + m +1) // m
+            print(f"Nombre de groupes calculé : {num_groups}")
         except ZeroDivisionError:
-            print(f"Erreur : L'objet debat a {self.name} n'a pas de participants ou le nombre maximal de participants par groupe est 0 - Self.max_per_group : {self.max_per_group}- Nombre de participants : {n}")
             return []
         
         if n % m > 0 and (n % m) < (m / 2) and num_groups > 1:  #Si il existe au moin 1 groupe problématique et qu'il est trop petit, on supprime un groupe
+            print("Condition activée pour réduire le nombre de groupes.")
             num_groups -= 1  # On réduit pour éviter un groupe trop petit
 
+        
         min_per_group = n // num_groups
         r = n % num_groups
         groups = []
+        print(f"Resultatat de la division : reste = {r}, min_per_group = {min_per_group}, max_per_group = {self.max_per_group}")
         start = 0
         for i in range(num_groups):
             group_size = min_per_group + (1 if i < r else 0) # On fait +1 tant que le nombre de peronne problématique n'est pas traité 
             groups.append(users[start:start + group_size])
             start += group_size
+
+        print(f"Groupes créés : {len(groups)} - Groupes : {groups}")
         return groups
             
 
@@ -181,6 +202,11 @@ class ObjectD:
 def add_users_to_stream(stream_name: str, user_emails: list[str]) -> bool:
     print(f"Ajout de {user_emails} dans {stream_name}")
     user_ids = [get_user_id(email) for email in user_emails if get_user_id(email)]
+    # Ajout de l'ID du bot lui-même
+    bot_user_id = get_user_id(get_client().get_profile()["email"])
+    if bot_user_id and bot_user_id not in user_ids:
+        user_ids.append(bot_user_id)
+
     if not user_ids:
         return False
     try:
@@ -240,8 +266,25 @@ listeDebat = {}
 def handle_message(msg: dict[str, str]) -> None:
     print("Message reçu")
     #print(msg)
+    global id_message_stats, stream_stats
+    if stream_stats is None:
+        stream_stats = msg["display_recipient"]
+
+    # Ignorer les messages envoyés par le bot lui-même
+    if msg["sender_email"] == get_client().get_profile()["email"]:
+        return
     content = msg["content"].strip()
     user_email = msg["sender_email"]
+    nb_caracteres = len(content)
+    user_name = msg["sender_full_name"]
+    # 1. Statistiques cumulatives
+    if user_email not in stats_utilisateurs:
+        if user_email != get_client().get_profile()["email"]:
+            stats_utilisateurs[user_email] = {"messages": 0, "caracteres": 0, "name": msg["sender_full_name"]}
+
+    stats_utilisateurs[user_email]["messages"] += 1
+    stats_utilisateurs[user_email]["caracteres"] += nb_caracteres
+
 
     if content.startswith("@créer"):
         print("Commande : créer")
@@ -302,6 +345,93 @@ def handle_message(msg: dict[str, str]) -> None:
         if name in listeDebat:
             status = listeDebat[name].get_status()
             client.send_message({"type": "private", "to": user_email, "content": status})
+    
+
+    # 2. Suivi des messages consécutifs
+    if messages_consecutifs["last_sender"] == user_email:
+        messages_consecutifs["count"] += 1
+    else:
+        messages_consecutifs["last_sender"] = user_email
+        messages_consecutifs["count"] = 1
+    
+    mediane = get_mediane_combinee()
+
+    # Avertissement parle trop 
+    if stats_utilisateurs[user_email]["messages"] > 4 * mediane:
+        get_client().send_message({
+            "type": "stream",
+            "to": msg["display_recipient"],
+            "topic": msg["subject"],
+            "content": f"@**{user_name}** ⚠️ Vous avez largement dépassé la participation moyenne. Merci de laisser de la place aux autres."
+        })
+
+    # Participation faible 
+    active_users = {email: stats for email, stats in stats_utilisateurs.items() if stats["messages"] > 0}
+    if len(active_users) >= 3 and mediane >= 2:
+        ratio = stats_utilisateurs[user_email]["messages"] / mediane
+        maintenant = datetime.now()
+        dernier = dernier_alerte_utilisateur.get(user_email, datetime.min)
+
+        if ratio < 0.5 and (maintenant - dernier).total_seconds() > COOLDOWN_ALERTES:
+            if ratio < 0.25:
+                texte = "⚠️ **Votre participation est très faible** comparée aux autres. Votre avis est important !"
+            else:
+                texte = "💡 **Vous pourriez participer davantage** - le débat a besoin de votre voix !"
+
+            get_client().send_message({
+                "type": "stream",
+                "to": msg["display_recipient"],
+                "topic": msg["subject"],
+                "content": f"@**{user_name}** {texte}"
+            })
+            dernier_alerte_utilisateur[user_email] = maintenant
+
+    # Générer contenu stat + avertissements globaux
+
+    if stats_utilisateurs:
+    # Construire le contenu du message par utilisateur
+        lignes = []
+        for email, stats in stats_utilisateurs.items():
+            nom = stats["name"]
+            nb_msg = stats["messages"]
+            nb_car = stats["caracteres"]
+            lignes.append(f"- **{nom}** : {nb_msg} message(s), {nb_car} caractère(s) envoyés")
+
+        contenu = (
+            "**📊 Contribution détaillée des participants**\n\n"
+            + "\n".join(lignes)
+        )
+
+        if id_message_stats is None:
+            result = get_client().send_message({
+                "type": "stream",
+                "to": stream_stats,
+                "topic": "📊 Contribution",
+                "content": contenu,
+            })
+            id_message_stats = result["id"]
+        else:
+            try:
+                get_client().update_message({
+                    "message_id": id_message_stats,
+                    "content": contenu
+                })
+            except Exception as e:
+                print(f"Erreur mise à jour stats : {e}")
+
+
+#calcul de la médiane
+def get_mediane_combinee() -> float:
+    if not stats_utilisateurs:
+        return 0
+    liste_scores = []
+    for data in stats_utilisateurs.values():
+        score = data["messages"] + data["caracteres"] / 10 
+        liste_scores.append(score)
+    try:
+        return statistics.median(liste_scores)
+    except statistics.StatisticsError:
+        return 0
 
 
 def check_and_create_channels() -> None:
@@ -321,6 +451,11 @@ def check_and_create_channels() -> None:
 def message_listener() -> None:
     #Fonction pour écouter les messages entrants.
     print("Démarrage de l'écoute des messages...")
+    request = {
+        "event_types": ["message"],
+        "narrow": [],  # vide = écoute tous les messages
+        "all_public_streams": True  # écoute même les messages dans les streams publics où il est abonné
+    }
     get_client().call_on_each_message(handle_message)
 
 def create_debat() -> None:
@@ -385,7 +520,7 @@ def main_loop() -> None:
             # Affiche les débats en cours
             for name, obj in listeDebat.items():
                 print(f"Objet D : {name}")
-                print(obj.get_status())
+                #print(obj.get_status())
         except Exception as e:
             print(f"Erreur : {e}")
 
