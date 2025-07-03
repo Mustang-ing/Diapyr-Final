@@ -1,7 +1,7 @@
 import json
 import os
 import django
-
+import sys
 # Set the settings module from your Zulip settings (adjust path if needed)
 sys.path.append("/home/ghostie/Diapyr/Diapyr-Final")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zproject.settings")
@@ -12,7 +12,8 @@ from datetime import datetime, timedelta, timezone
 import time
 import threading
 from zerver.models.debat import Debat,Participant
-
+import random
+import math
 # Configuration du bot
 client = None
 
@@ -35,6 +36,12 @@ class ObjectD:
         self.step = 1
         self.subscribers = {}
         self.channels_created = False
+        # Structures pour gérer les QCM et sondages
+        self.qcm_data: Dict[str, Dict[str, Set[str]]] = {}
+        self.qcm_message_ids: Dict[str, int] = {}  # {stream_name: message_id}
+        self.qcm_events: Dict[str, threading.Event] = {}  # {stream_name: Event}
+        self.group_members: Dict[str, List[str]] = {}  # {stream_name: [emails]}
+
         print(f"Création d'un objet débat : {name}")
 
     def add_subscriber(self, user_email: str , user_info: dict[str, str]) -> None:
@@ -87,35 +94,231 @@ class ObjectD:
         for idx, group in enumerate(groups):
             info += f"Groupe {idx + 1}: {', '.join(group)}\n"
         return info
+
     
+    # Méthode  pour envoyer le sondage final basé sur les réponses QCM
+    def send_qcm(self, stream_name: str, group_members: list[str]) -> bool:
+        """Retourne True si le QCM est envoyé avec succès"""
+        try:
+            # Vérifier/créer le stream
+            stream_info = client.get_stream_id(stream_name)
+            if stream_info.get("result") != "success":
+                print(f"Création du stream {stream_name}...")
+                client.add_subscriptions(
+                    streams=[{"name": stream_name}],
+                    principals=[get_user_id(email) for email in group_members],
+                )
+
+            # Préparer le message
+            all_members = client.get_members()["members"]
+            email_to_name = {m["email"]: m["full_name"] for m in all_members}
+            names = [email_to_name.get(email, email) for email in group_members]
+            
+            message = {
+                "type": "stream",
+                "to": stream_name,
+                "subject": "QCM",
+                "content": "Qui voulez-vous sélectionner ?(repondez :1: pour i ème membre dans le QCM\n\n" + 
+                        "\n".join(f"{i}. {name}" for i, name in enumerate(names, 1)),
+            }
+
+            # Envoyer et vérifier
+            response = client.send_message(message)
+            if "id" not in response:
+                print(f"Erreur: pas d'ID dans la réponse: {response}")
+                return False
+
+            self.qcm_message_ids[stream_name] = response["id"]
+            self.qcm_data[stream_name] = {str(i): set() for i in range(1, len(names)+1)}
+            self.qcm_events[stream_name] = threading.Event()
+            return True
+
+        except Exception as e:
+            print(f"Erreur send_qcm: {str(e)}")
+            return False
+        # fonction pour envoyer sondage final
+
+    def send_final_poll(self, stream_name: str) -> set[str]:
+        if stream_name not in self.qcm_data:
+            print(f"Aucune donnée QCM pour {stream_name}")
+            return set()
+
+        group = self.group_members[stream_name]
+        group_size = len(group)
+
+        if group_size <= 1:
+            print(f"Pas assez de membres dans {stream_name} pour voter")
+            return set()
+
+        # Seuil initial = 2/3 des autres membres
+        threshold_high = math.ceil((group_size - 1) * (2 / 3))
+        # Seuil secondaire = 1/2 des autres membres (arrondi vers le bas)
+        threshold_low = math.floor((group_size - 1) * (1 / 2))
+
+        # Compter les votes reçus
+        vote_count = {}
+        for option_num, voters in self.qcm_data[stream_name].items():
+            if voters:
+                index = int(option_num) - 1
+                if 0 <= index < group_size:
+                    member_email = group[index]
+                    vote_count[member_email] = vote_count.get(member_email, 0) + len(voters)
+
+        print(f"Résultats QCM ({stream_name}) : {vote_count}")
+        print(f"Seuil de sélection = {threshold} votes")
+
+        # Garder ceux qui atteignent ou dépassent le seuil
+        selected = {email for email, count in vote_count.items() if count >= threshold }
+        # Si vide, utiliser le seuil bas
+        if not selected:
+            selected = {email for email, count in vote_count.items() if count >= threshold_low}
+        # Envoi du sondage final 
+        all_members = client.get_members()["members"]
+        email_to_name = {user["email"]: user["full_name"] for user in all_members}
+        options = [f'"{email_to_name[email]}"' for email in selected if email in email_to_name]
+
+        if options:
+            question = "Vote final : Votez pour vos élus ?"
+            poll_command = f'/poll "{question}" {" ".join(options)}'
+            message = {
+                "type": "stream",
+                "to": stream_name,
+                "subject": "Sondage final",
+                "content": poll_command,
+            }
+            client.send_message(message)
+            print(f"Sondage final envoyé dans {stream_name}")
+        else:
+            print(f"Aucun membre n’a atteint le seuil dans {stream_name}")
+
+        return selected
+
+
+    # fonction pour traiter les réponses dans le  QCM
+    def handle_reaction(self, event: dict) -> None:
+        if event["type"] != "reaction":
+            return
+            
+        message_id = event["message_id"]
+        user_email = event["user"]["email"]
+        emoji = event["emoji_name"]
+        
+        # Trouver à quel QCM cette réaction appartient
+        stream_name = next(
+            (s for s, mid in self.qcm_message_ids.items() if mid == message_id),
+            None
+        )
+        
+        if not stream_name:
+            return  # Ce n'est pas une réaction à un de nos QCM
+            
+        # Vérifier que l'utilisateur fait partie du groupe
+        if user_email not in self.group_members.get(stream_name, []):
+            return
+            
+        # Vérifier que la réaction est un numéro valide (1, 2, 3...)
+        emoji = event["emoji_name"].strip(':')  # Transforme ":1:" → "1"
+        if emoji.isdigit():
+            self.qcm_data[stream_name][emoji].add(user_email)
+            # Enregistrer la réponse
+            self.qcm_data[stream_name][emoji].add(user_email)
+            print(f"Vote {emoji} enregistré de {user_email} dans {stream_name}")
+            
+            # Vérifier si tous ont répondu
+            expected = set(self.group_members[stream_name])
+            responded = set().union(*self.qcm_data[stream_name].values())  # Tous les votants
+            
+            if expected.issubset(responded):
+                print(f"Toutes les réponses reçues pour {stream_name}")
+                self.qcm_events[stream_name].set()
+
+   
 
     def start_debate_process(self) -> None:
         def run_steps() -> None:
-            while True:
-                print(f"Attente de {self.time_between_steps} avant la prochaine étape...")
-                time.sleep(self.time_between_steps.total_seconds())
+            try:
+                while True:
+                    # Attente entre étapes
+                    total_seconds = int(self.time_between_steps.total_seconds())
+                    print(f"\n---\nAttente de {self.time_between_steps} avant étape {self.step}...")
+                    time.sleep(total_seconds)
 
-                if not self.next_step():
-                    print(f"Débat '{self.name}' terminé. Plus qu’un seul groupe.")
-                    client.send_message({
-                        "type": "private",
-                        "to": self.creator_email,
-                        "content": f"Débat '{self.name}' terminé. Plus qu’un seul groupe.",
-                    })
-                    break
+                    print(f"\n=== Début étape {self.step} du débat '{self.name}' ===")
 
-                print(f"Étape {self.step} du débat '{self.name}'")
-                groups = self.split_into_groups()
-                self.create_streams_for_groups(groups)
+                    # 1. Création des groupes
+                    groups = self.split_into_groups()
+                    if not groups:
+                        print("Aucun groupe créé, fin du débat")
+                        break
 
+                    stream_names = []
+                    for i, group in enumerate(groups):
+                        stream_name = f"{self.name}{'I' * self.step}{i + 1}"
+                        stream_names.append(stream_name)
+                        self.group_members[stream_name] = group
+
+                    # 2. Envoi des QCM
+                    qcm_success = True
+                    for stream_name, group in zip(stream_names, groups):
+                        if not self.send_qcm(stream_name, group):
+                            qcm_success = False
+                            print(f"Échec QCM pour {stream_name}")
+
+                    if not qcm_success:
+                        print("Échec d'envoi des QCM, passage à l'étape suivante")
+                        self.step += 1
+                        continue
+
+                    # 3. Attente des réponses
+                    print("\nEn attente des réponses aux QCM...")
+                    start_time = time.time()
+                    timeout = 180  # 3 minutes
+                    all_responded = False
+
+                    while (time.time() - start_time) < timeout:
+                        all_responded = all(event.is_set() for event in self.qcm_events.values())
+                        if all_responded:
+                            break
+                        time.sleep(5)  # Vérifier toutes les 5s
+
+                    # 4. Traitement des réponses
+                    selected_members = set()
+                    for stream_name in stream_names:
+                        if self.qcm_events[stream_name].is_set():
+                            selected = self.send_final_poll(stream_name)
+                            selected_members.update(selected)
+                        else:
+                            print(f"Timeout pour {stream_name}")
+
+                    # 5. Préparation étape suivante
+                    if not selected_members:
+                        print("Aucun membre sélectionné, fin du débat")
+                        break
+
+                    # Mise à jour des participants
+                    self.subscribers = {
+                        email: info 
+                        for email, info in self.subscribers.items() 
+                        if email in selected_members
+                    }
+                    self.step += 1
+
+                    # Vérifier si fin du débat
+                    if len(self.subscribers) <= self.max_per_group:
+                        print("Plus qu'un seul groupe possible, fin du débat")
+                        break
+
+            except Exception as e:
+                print(f"ERREUR dans run_steps: {str(e)}")
+            finally:
+                print(f"Débat '{self.name}' terminé")
                 client.send_message({
                     "type": "private",
                     "to": self.creator_email,
-                    "content": f"Étape {self.step} démarrée pour le débat '{self.name}'.",
+                    "content": f"Débat '{self.name}' terminé après {self.step} étapes.",
                 })
+        threading.Thread(target=run_steps, daemon=True).start()
 
-        threading.Thread(target=run_steps).start()
-    
 # Fonctions utilitaires
     
 def add_users_to_stream(stream_name: str, user_emails: list[str]) -> bool:
@@ -239,6 +442,46 @@ def handle_message(msg: dict[str, str]) -> None:
             status = listeDebat[name].get_status()
             client.send_message({"type": "private", "to": user_email, "content": status})
 
+    #Nouveau bloc pour gérer la publication des sondages par les membres choisis
+    for debate in listeDebat.values():
+        # Vérifie si ce débat a une liste poll_authors et si l'utilisateur en fait partie
+        if hasattr(debate, "poll_authors") and user_email in debate.poll_authors:
+            stream_name = debate.group_to_stream.get(user_email)
+
+            if content.startswith("/poll"):
+                try:
+                    # Envoie le message du sondage dans le stream associé au groupe
+                    client.send_message({
+                        "type": "stream",
+                        "to": stream_name,
+                        "subject": "Sondage final",
+                        "content": content,
+                    })
+                    # Confirme à l'utilisateur que son sondage est publié
+                    client.send_message({
+                        "type": "private",
+                        "to": user_email,
+                        "content": "Ton sondage a bien été publié dans le groupe.",
+                    })
+                    # Supprime l'utilisateur des listes pour éviter plusieurs sondages
+                    del debate.poll_authors[user_email]
+                    del debate.group_to_stream[user_email]
+                except Exception as e:
+                    client.send_message({
+                        "type": "private",
+                        "to": user_email,
+                        "content": f"Erreur lors de l’envoi du sondage : {e}",
+                    })
+            else:
+                # Si le message ne commence pas par /poll, on prévient l'utilisateur
+                client.send_message({
+                    "type": "private",
+                    "to": user_email,
+                    "content": "Ton message ne commence pas par `/poll`. Utilise le format `/poll \"Question\" \"Option 1\" \"Option 2\"`.",
+                })
+            break
+
+
 
 def check_and_create_channels() -> None:
     #Vérifie si la période d'inscription est terminée et crée les channels si nécessaire.
@@ -288,10 +531,15 @@ def add_user() -> None:
                     else: 
                         print(f"Utilisateur {user.pseudo} non trouvé dans Zulip.")
 
+def event_listener():
+    print("Démarrage de l'écoute des événements...")
+    client.call_on_each_event(handle_reaction, event_types=['reaction'])
+
 def main_loop() -> None:
     #Boucle principale du bot.
     print("Démarrage de la boucle principale...")
     i=0
+    
     while True:
 
         #On génére les debats qui n'ont pas encore été génére depuis la table debat
@@ -301,7 +549,6 @@ def main_loop() -> None:
         add_user()
         # Vérifie si la période d'inscription est terminée et crée les channels si nécessaire
         check_and_create_channels()
-        
         #print(get_all_zulip_user_emails())
         
         #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
@@ -328,5 +575,6 @@ def main_loop() -> None:
         i+=1
 
 if __name__ == "__main__":
-    threading.Thread(target=message_listener).start()
+    threading.Thread(target=message_listener, daemon=True).start()
+    threading.Thread(target=event_listener, daemon=True).start()
     main_loop()

@@ -1,5 +1,9 @@
 #: analytics/views/stats.py:109 zerver/decorator.py:647
 #: zerver/decorator.py:665
+msgid ""
+msgstr ""
+"Content-Type: text/plain; charset=UTF-8\n"
+"Language: fr\n"
 msgid "Not allowed for guest users"
 msgstr "Non autorisé pour les utilisateurs invités"
 
