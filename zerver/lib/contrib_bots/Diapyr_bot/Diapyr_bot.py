@@ -214,7 +214,8 @@ def handle_message(msg: dict[str, str]) -> None:
     user_name = msg["sender_full_name"]
     # 1. Statistiques cumulatives
     if user_email not in stats_utilisateurs:
-        stats_utilisateurs[user_email] = {"messages": 0, "caracteres": 0, "name": msg["sender_full_name"]}
+        if user_email != get_client().get_profile()["email"]:
+            stats_utilisateurs[user_email] = {"messages": 0, "caracteres": 0, "name": msg["sender_full_name"]}
 
     stats_utilisateurs[user_email]["messages"] += 1
     stats_utilisateurs[user_email]["caracteres"] += nb_caracteres
@@ -288,11 +289,9 @@ def handle_message(msg: dict[str, str]) -> None:
         messages_consecutifs["last_sender"] = user_email
         messages_consecutifs["count"] = 1
     
-    # Calcul médiane unique
-    messages_counts = [v["messages"] for v in stats_utilisateurs.values()]
-    mediane = statistics.median(messages_counts) if messages_counts else 0
+    mediane = get_mediane_combinee()
 
-    # Avertissement parle trop (ex: 4 fois la médiane)
+    # Avertissement parle trop 
     if stats_utilisateurs[user_email]["messages"] > 4 * mediane:
         get_client().send_message({
             "type": "stream",
@@ -301,7 +300,7 @@ def handle_message(msg: dict[str, str]) -> None:
             "content": f"@**{user_name}** ⚠️ Vous avez largement dépassé la participation moyenne. Merci de laisser de la place aux autres."
         })
 
-    # Participation faible (avec cooldown)
+    # Participation faible 
     active_users = {email: stats for email, stats in stats_utilisateurs.items() if stats["messages"] > 0}
     if len(active_users) >= 3 and mediane >= 2:
         ratio = stats_utilisateurs[user_email]["messages"] / mediane
@@ -325,23 +324,17 @@ def handle_message(msg: dict[str, str]) -> None:
     # Générer contenu stat + avertissements globaux
 
     if stats_utilisateurs:
-        plus_actif = max(stats_utilisateurs.items(), key=lambda x: x[1]["messages"])
-        moins_actif = min(stats_utilisateurs.items(), key=lambda x: x[1]["messages"])
-
-        avertissements = []
+    # Construire le contenu du message par utilisateur
+        lignes = []
         for email, stats in stats_utilisateurs.items():
             nom = stats["name"]
-            if stats["messages"] > 4 * mediane:
-                avertissements.append(f"⚠️ **{nom}** parle beaucoup trop, laisse un peu la place aux autres !")
-            elif stats["messages"] < mediane / 2:
-                avertissements.append(f"💡 **{nom}**, tu devrais participer un peu plus, ta voix compte !")
+            nb_msg = stats["messages"]
+            nb_car = stats["caracteres"]
+            lignes.append(f"- **{nom}** : {nb_msg} message(s), {nb_car} caractère(s) envoyés")
 
         contenu = (
-            "**📊 Contribution**\n\n"
-            f"- 📈 Médiane des messages envoyés : **{mediane:.1f}**\n"
-            f"- 🥇 Plus actif : **{plus_actif[1]['name']}** avec **{plus_actif[1]['messages']}** messages\n"
-            f"- 💤 Moins actif : **{moins_actif[1]['name']}** avec **{moins_actif[1]['messages']}** messages\n\n"
-            + ("\n".join(avertissements) if avertissements else "👍 Tout le monde participe bien !")
+            "**📊 Contribution détaillée des participants**\n\n"
+            + "\n".join(lignes)
         )
 
         if id_message_stats is None:
@@ -361,16 +354,20 @@ def handle_message(msg: dict[str, str]) -> None:
             except Exception as e:
                 print(f"Erreur mise à jour stats : {e}")
 
+
 #calcul de la médiane
-def get_mediane_messages() -> float:
+def get_mediane_combinee() -> float:
     if not stats_utilisateurs:
         return 0
-    
-    liste_messages = [data["messages"] for data in stats_utilisateurs.values()]
+    liste_scores = []
+    for data in stats_utilisateurs.values():
+        score = data["messages"] + data["caracteres"] / 10 
+        liste_scores.append(score)
     try:
-        return statistics.median(liste_messages)
+        return statistics.median(liste_scores)
     except statistics.StatisticsError:
         return 0
+
 
 def check_and_create_channels() -> None:
     #Vérifie si la période d'inscription est terminée et crée les channels si nécessaire.
