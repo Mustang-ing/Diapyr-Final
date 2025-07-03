@@ -89,3 +89,5 @@ core
 ## Miscellaneous
 # (Ideally this section is empty.)
 .transifexrc
+zerver/lib/contrib_bots/Diapyr_bot/zuliprc.txt
+zproject/computed_settings.py

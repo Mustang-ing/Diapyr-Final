@@ -3,6 +3,7 @@ import os
 import django
 
 # Set the settings module from your Zulip settings (adjust path if needed)
+sys.path.append("/home/ghostie/Diapyr/Diapyr-Final")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zproject.settings")
 django.setup()
 import zulip
