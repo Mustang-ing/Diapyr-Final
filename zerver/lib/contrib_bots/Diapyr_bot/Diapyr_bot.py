@@ -45,7 +45,7 @@ class ObjectD:
         self.creator_email = creator_email
         self.max_per_group = max_per_group
         self.end_date = end_date
-        self.time_between_steps = time_between_steps if isinstance(time_between_steps, timedelta) else timedelta(minutes=int(time_between_steps))
+        self.time_between_steps = time_between_steps if isinstance(time_between_steps, timedelta) else timedelta(seconds=int(time_between_steps))
         #Il pourrait être intéressant de ettre un contrôle sur la valeur du time between_step 
         self.num_pass = num_pass
         self.step = 1
@@ -65,10 +65,14 @@ class ObjectD:
     
         n = len(users) 
         m = self.max_per_group  
+
+        if n <= m:
+            return [users]
+
     
         print(f"Nombre de participants : {n}, Nombre maximal de participants par groupe : {m}")
         try:
-            num_groups = (n + m +1) // m
+            num_groups = n // m
             print(f"Nombre de groupes calculé : {num_groups}")
         except ZeroDivisionError:
             return []
@@ -141,6 +145,8 @@ class ObjectD:
 
     def get_status(self) -> str:
         users = list(self.subscribers.keys())
+        print("gagagaaaaaaaaaaaaaaaaa")
+
         if self.creator_email not in users:
             users.append(self.creator_email)
         groups = [users[i:i + self.max_per_group] for i in range(0, len(users), self.max_per_group)]
@@ -158,7 +164,6 @@ class ObjectD:
             while True:
                 print(f"Attente de {self.time_between_steps} avant la prochaine étape...")
                 time.sleep(self.time_between_steps.total_seconds())
-
                 if not self.next_step():
                     print(f"Débat '{self.name}' terminé. Plus qu’un seul groupe.")
                     users = list(self.subscribers.keys())
@@ -512,17 +517,6 @@ def main_loop() -> None:
     i=0 #Utilité ?
     #get_client()  
     while True:
-
-        try:
-            if len(listeDebat) == 0:
-                print("Taille : ", len(listeDebat))
-                raise Exception("Aucun débat n'est disponible dans listeDebat.")
-            # Affiche les débats en cours
-            for name, obj in listeDebat.items():
-                print(f"Objet D : {name}")
-                #print(obj.get_status())
-        except Exception as e:
-            print(f"Erreur : {e}")
 
         #print(client.get_members())
         #On génére les debats qui n'ont pas encore été génére depuis la table debat
