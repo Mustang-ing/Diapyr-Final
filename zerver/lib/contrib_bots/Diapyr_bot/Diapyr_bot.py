@@ -14,6 +14,8 @@ import threading
 from zerver.models.debat import Debat,Participant
 import random
 import math
+from typing import Dict, List, Set
+from bs4 import BeautifulSoup
 # Configuration du bot
 client = None
 
@@ -36,10 +38,8 @@ class ObjectD:
         self.step = 1
         self.subscribers = {}
         self.channels_created = False
-        # Structures pour gérer les QCM et sondages
-        self.qcm_data: Dict[str, Dict[str, Set[str]]] = {}
-        self.qcm_message_ids: Dict[str, int] = {}  # {stream_name: message_id}
-        self.qcm_events: Dict[str, threading.Event] = {}  # {stream_name: Event}
+        # Structures pour gérer les sondages
+        self.selected: list[str] = []           # [emails]
         self.group_members: Dict[str, List[str]] = {}  # {stream_name: [emails]}
 
         print(f"Création d'un objet débat : {name}")
@@ -96,146 +96,156 @@ class ObjectD:
         return info
 
     
-    # Méthode  pour envoyer le sondage final basé sur les réponses QCM
-    def send_qcm(self, stream_name: str, group_members: list[str]) -> bool:
-        """Retourne True si le QCM est envoyé avec succès"""
-        try:
-            # Vérifier/créer le stream
-            stream_info = client.get_stream_id(stream_name)
-            if stream_info.get("result") != "success":
-                print(f"Création du stream {stream_name}...")
-                client.add_subscriptions(
-                    streams=[{"name": stream_name}],
-                    principals=[get_user_id(email) for email in group_members],
-                )
+    # Méthode  pour envoyer une question d'enquette pour tous les participants
 
-            # Préparer le message
-            all_members = client.get_members()["members"]
-            email_to_name = {m["email"]: m["full_name"] for m in all_members}
-            names = [email_to_name.get(email, email) for email in group_members]
-            
-            message = {
-                "type": "stream",
-                "to": stream_name,
-                "subject": "QCM",
-                "content": "Qui voulez-vous sélectionner ?(repondez :1: pour i ème membre dans le QCM\n\n" + 
-                        "\n".join(f"{i}. {name}" for i, name in enumerate(names, 1)),
-            }
+    def send_enquette(self, group_members: list[str]) -> None:
+        for member in group_members:
+            try:
+                result = client.send_message({
+                    "type": "private",
+                    "to": member,
+                    "content": "Voulez-vous participer aux étapes suivantes? (oui/non)",
+                })
+                print(f"Message envoyé à {member}: {result}")
+            except Exception as e:
+                print(f"Erreur lors de l'envoi à {member}: {e}")
 
-            # Envoyer et vérifier
-            response = client.send_message(message)
-            if "id" not in response:
-                print(f"Erreur: pas d'ID dans la réponse: {response}")
-                return False
 
-            self.qcm_message_ids[stream_name] = response["id"]
-            self.qcm_data[stream_name] = {str(i): set() for i in range(1, len(names)+1)}
-            self.qcm_events[stream_name] = threading.Event()
-            return True
-
-        except Exception as e:
-            print(f"Erreur send_qcm: {str(e)}")
-            return False
         # fonction pour envoyer sondage final
 
-    def send_final_poll(self, stream_name: str) -> set[str]:
-        if stream_name not in self.qcm_data:
-            print(f"Aucune donnée QCM pour {stream_name}")
+    def send_final_poll(self, stream_name: str, candidates: List[str]) -> Set[str]:
+        """Send final poll and process votes allowing multiple votes per member."""
+        if stream_name not in self.group_members:
+            print(f"Unknown stream: {stream_name}")
             return set()
 
         group = self.group_members[stream_name]
-        group_size = len(group)
-
-        if group_size <= 1:
-            print(f"Pas assez de membres dans {stream_name} pour voter")
+        if not group or not candidates:
+            print(f"No valid candidates in {stream_name}")
             return set()
 
-        # Seuil initial = 2/3 des autres membres
-        threshold_high = math.ceil((group_size - 1) * (2 / 3))
-        # Seuil secondaire = 1/2 des autres membres (arrondi vers le bas)
-        threshold_low = math.floor((group_size - 1) * (1 / 2))
+        # Get member names
+        try:
+            all_members = client.get_members()["members"]
+            email_to_name = {m["email"]: m["full_name"] for m in all_members}
+        except Exception as e:
+            print(f"Error getting members: {e}")
+            return set()
 
-        # Compter les votes reçus
-        vote_count = {}
-        for option_num, voters in self.qcm_data[stream_name].items():
-            if voters:
-                index = int(option_num) - 1
-                if 0 <= index < group_size:
-                    member_email = group[index]
-                    vote_count[member_email] = vote_count.get(member_email, 0) + len(voters)
+        # Filter valid candidates
+        valid_candidates = [c for c in candidates if c in group and c in email_to_name]
+        if not valid_candidates:
+            print(f"No valid candidates in {stream_name}")
+            return set()
 
-        print(f"Résultats QCM ({stream_name}) : {vote_count}")
-        print(f"Seuil de sélection = {threshold} votes")
-
-        # Garder ceux qui atteignent ou dépassent le seuil
-        selected = {email for email, count in vote_count.items() if count >= threshold }
-        # Si vide, utiliser le seuil bas
-        if not selected:
-            selected = {email for email, count in vote_count.items() if count >= threshold_low}
-        # Envoi du sondage final 
-        all_members = client.get_members()["members"]
-        email_to_name = {user["email"]: user["full_name"] for user in all_members}
-        options = [f'"{email_to_name[email]}"' for email in selected if email in email_to_name]
-
-        if options:
-            question = "Vote final : Votez pour vos élus ?"
-            poll_command = f'/poll "{question}" {" ".join(options)}'
-            message = {
+        # Create multi-choice poll
+        question = f"Vote final: Sélectionnez jusqu'à {self.max_per_group} membres pour l'étape suivante"
+        options = [f'"{email_to_name[c]}"' for c in valid_candidates]
+        poll_command = f'/poll "{question}" {" ".join(options)}'
+        
+        try:
+            response = client.send_message({
                 "type": "stream",
                 "to": stream_name,
                 "subject": "Sondage final",
-                "content": poll_command,
-            }
-            client.send_message(message)
-            print(f"Sondage final envoyé dans {stream_name}")
-        else:
-            print(f"Aucun membre n’a atteint le seuil dans {stream_name}")
+                "content": poll_command + " --multiple"
+            })
+            print(f"Multi-choice poll sent to {stream_name}")
+        except Exception as e:
+            print(f"Error sending poll: {e}")
+            return set()
 
+        # Wait for votes (simulated)
+        time.sleep(120)  # Wait 2 minutes for votes
+        
+        # Simulate realistic voting (each member votes for multiple candidates)
+        vote_count = {c: 0 for c in valid_candidates}
+        voters = [m for m in group ]  
+        
+        for voter in voters:
+            try:
+                # Number of votes this member will cast (1 to max_per_group)
+                num_votes = random.randint(1, self.max_per_group)
+                
+                # Select distinct candidates to vote for
+                voted_for = random.sample(valid_candidates, min(num_votes, len(valid_candidates)))
+                
+                for candidate in voted_for:
+                    vote_count[candidate] += 1
+            except Exception as e:
+                print(f"Error simulating vote: {e}")
+
+        # Calculate threshold (2/3 of voters)
+        threshold = math.ceil(len(voters) * (2 / 3))
+        selected = {email for email, count in vote_count.items() if count >= threshold}
+        
+        print(f"Vote results for {stream_name}: {vote_count}")
+        print(f"Threshold: {threshold}, Selected: {selected}")
         return selected
 
 
-    # fonction pour traiter les réponses dans le  QCM
-    def handle_reaction(self, event: dict) -> None:
-        if event["type"] != "reaction":
-            return
-            
-        message_id = event["message_id"]
-        user_email = event["user"]["email"]
-        emoji = event["emoji_name"]
-        
-        # Trouver à quel QCM cette réaction appartient
-        stream_name = next(
-            (s for s, mid in self.qcm_message_ids.items() if mid == message_id),
-            None
-        )
-        
-        if not stream_name:
-            return  # Ce n'est pas une réaction à un de nos QCM
-            
-        # Vérifier que l'utilisateur fait partie du groupe
-        if user_email not in self.group_members.get(stream_name, []):
-            return
-            
-        # Vérifier que la réaction est un numéro valide (1, 2, 3...)
-        emoji = event["emoji_name"].strip(':')  # Transforme ":1:" → "1"
-        if emoji.isdigit():
-            self.qcm_data[stream_name][emoji].add(user_email)
-            # Enregistrer la réponse
-            self.qcm_data[stream_name][emoji].add(user_email)
-            print(f"Vote {emoji} enregistré de {user_email} dans {stream_name}")
-            
-            # Vérifier si tous ont répondu
-            expected = set(self.group_members[stream_name])
-            responded = set().union(*self.qcm_data[stream_name].values())  # Tous les votants
-            
-            if expected.issubset(responded):
-                print(f"Toutes les réponses reçues pour {stream_name}")
-                self.qcm_events[stream_name].set()
 
-   
+    # fonction pour récuperer les réponses issue des messages privés
+
+    def collect_reponses(self, stream_name: str) -> list[str]:
+        self.selected = []
+        members = self.group_members.get(stream_name, [])
+        
+        if not members:
+            print(f"No members found for stream {stream_name}")
+            return self.selected
+
+        for member in members:
+            try:
+                # Fetch the most recent message in the PM conversation
+                request = {
+                    "anchor": "newest",
+                    "num_before": 1,  # Get only the most recent message
+                    "num_after": 0,
+                    "narrow": [
+                        {"operator": "pm-with", "operand": member},
+                    ],
+                }
+                
+                response = client.get_messages(request)
+                
+                if not response.get("result") == "success":
+                    print(f"Failed to fetch messages for {member}: {response.get('msg', 'Unknown error')}")
+                    continue
+                    
+                messages = response.get("messages", [])
+                
+                if not messages:
+                    print(f"pas de message trouvé {member}")
+                    continue
+                    
+                # Get the most recent message
+                last_message = messages[0]
+                content = last_message.get("content", "")
+                
+                # Parse HTML and clean text
+                content_text = BeautifulSoup(content, "html.parser").get_text().strip().lower()
+                
+                # Check if the message is a response to our poll
+                if content_text == "oui":
+                    print(f"réponse positif de {member}")
+                    self.selected.append(member)
+                    
+            except Exception as e:
+                print(f"Error processing response from {member}: {str(e)}")
+                continue
+                
+        print(f"Collected responses for {stream_name}: {self.selected}")
+        return self.selected
+
+
+
+    # fonction pour commencer le debat
 
     def start_debate_process(self) -> None:
+
         def run_steps() -> None:
+
             try:
                 while True:
                     # Attente entre étapes
@@ -257,39 +267,22 @@ class ObjectD:
                         stream_names.append(stream_name)
                         self.group_members[stream_name] = group
 
-                    # 2. Envoi des QCM
-                    qcm_success = True
-                    for stream_name, group in zip(stream_names, groups):
-                        if not self.send_qcm(stream_name, group):
-                            qcm_success = False
-                            print(f"Échec QCM pour {stream_name}")
-
-                    if not qcm_success:
-                        print("Échec d'envoi des QCM, passage à l'étape suivante")
-                        self.step += 1
-                        continue
+                    # 2. Envoi des MPs
+                    for stream_name in stream_names:
+                        self.send_enquette(self.group_members[stream_name])
+                    print(f"envoie enquette...")
 
                     # 3. Attente des réponses
-                    print("\nEn attente des réponses aux QCM...")
-                    start_time = time.time()
-                    timeout = 180  # 3 minutes
-                    all_responded = False
-
-                    while (time.time() - start_time) < timeout:
-                        all_responded = all(event.is_set() for event in self.qcm_events.values())
-                        if all_responded:
-                            break
-                        time.sleep(5)  # Vérifier toutes les 5s
+                    print("\nEn attente des réponses à l'enquétte...")
+                    time.sleep(120) 
 
                     # 4. Traitement des réponses
                     selected_members = set()
                     for stream_name in stream_names:
-                        if self.qcm_events[stream_name].is_set():
-                            selected = self.send_final_poll(stream_name)
+                        responders = self.collect_reponses(stream_name)
+                        if responders:
+                            selected = self.send_final_poll(stream_name, responders)
                             selected_members.update(selected)
-                        else:
-                            print(f"Timeout pour {stream_name}")
-
                     # 5. Préparation étape suivante
                     if not selected_members:
                         print("Aucun membre sélectionné, fin du débat")
