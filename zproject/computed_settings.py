@@ -632,7 +632,7 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 0
 
 if DEVELOPMENT or "ZULIP_COLLECTING_STATIC" in os.environ:
     STATICFILES_DIRS = [os.path.join(DEPLOY_ROOT, "static"),
-            "/home/ing-tester/zulip/web",        # Additional path - to be removed later
+        "/home/nissi/Documents/Diapyr-Final-1/web",        # Additional path - to be removed later
 ]
 
 if DEBUG:
