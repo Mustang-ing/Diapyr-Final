@@ -1,5 +1,7 @@
 [api]
-email=lol-bot@zulipdev.com
-key=bQhytV2UJP71Y1KdlKFygaP3kbQ2dc5j
+email=Test3-bot@zulipdev.com
+key=sjkM46D15JXYfmJNqCdfbmrqLiC0MNIv
 site=http://localhost:9991
+
+
 
