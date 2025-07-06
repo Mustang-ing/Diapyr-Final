@@ -42,7 +42,7 @@ if __name__ == "__main__":
     # Create a new debate
     num = Debat.objects.count() 
     debat = Debat.objects.create(
-        title=f"Test Debate {num}",
+        title=f"Test debate {num}",
         creator_email="",
         max_per_group=max_per_group,
         end_date = datetime.now() + timedelta(seconds=10),
