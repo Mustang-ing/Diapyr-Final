@@ -1,5 +1,6 @@
 import json
 import os
+import statistics
 import sys
 
 import sys
@@ -551,19 +552,6 @@ def handle_message(msg: dict[str, str]) -> None:
                 print(f"Erreur mise à jour stats : {e}")
 
 
-#calcul de la médiane
-def get_mediane_combinee() -> float:
-    if not stats_utilisateurs:
-        return 0
-    liste_scores = []
-    for data in stats_utilisateurs.values():
-        score = data["messages"] + data["caracteres"] / 10 
-        liste_scores.append(score)
-    try:
-        return statistics.median(liste_scores)
-    except statistics.StatisticsError:
-        return 0
-
     #Nouveau bloc pour gérer la publication des sondages par les membres choisis
     for debate in listeDebat.values():
         # Vérifie si ce débat a une liste poll_authors et si l'utilisateur en fait partie
@@ -604,6 +592,19 @@ def get_mediane_combinee() -> float:
             break
 
 
+
+#calcul de la médiane
+def get_mediane_combinee() -> float:
+    if not stats_utilisateurs:
+        return 0
+    liste_scores = []
+    for data in stats_utilisateurs.values():
+        score = data["messages"] + data["caracteres"] / 10 
+        liste_scores.append(score)
+    try:
+        return statistics.median(liste_scores)
+    except statistics.StatisticsError:
+        return 0
 
 def check_and_create_channels() -> None:
     #Vérifie si la période d'inscription est terminée et crée les channels si nécessaire.
