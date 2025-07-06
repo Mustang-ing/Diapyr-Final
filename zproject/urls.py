@@ -1,5 +1,6 @@
 import os
 from zilencer.views import formulaire_debat_view, join_debat_view
+from zilencer.views import diapyr_home, diapyr_join_debat
 
 
 from django.conf import settings
@@ -667,8 +668,10 @@ i18n_urls = [
     path("diapyr_home/",diapyr_home,name="diapyr_home"),
     path("diapyr_join_debat/",diapyr_join_debat,name="diapyr_join_debat"),
 
-    path("diapyr/formulaire_debat/", formulaire_debat_view, name="formulaire_debat"),
-    path("diapyr/join_debat/", join_debat_view, name="join_debat"),
+    #path("diapyr/formulaire_debat/", formulaire_debat_view, name="formulaire_debat"),
+    #path("diapyr/join_debat/", join_debat_view, name="join_debat"),
+    path("formulaire/", formulaire_debat_view, name="formulaire"),
+    path("join/", join_debat_view, name="join"),
 
 ]
 
@@ -930,9 +933,4 @@ urls += [path("health", health)]
 # reverse URL mapping points to i18n URLs which causes the frontend
 # tests to fail
 urlpatterns = i18n_patterns(*i18n_urls) + urls
-from zilencer import views as zilencer_views
 
-urlpatterns += [
-    path("formulaire/", zilencer_views.formulaire_debat_view, name="formulaire"),
-    path("join/", zilencer_views.join_debat_view, name="join"),
-]

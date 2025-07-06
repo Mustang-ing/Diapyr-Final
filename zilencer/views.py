@@ -97,23 +97,7 @@ from zilencer.models import (
     RemoteZulipServerAuditLog,
 )
 
-from django.views.decorators.csrf import csrf_protect
-from django.template import engines
-from django.http import HttpResponse
 
-@csrf_protect
-def formulaire_debat_view(request):
-    if request.method == "POST":
-        print("Données reçues :", request.POST)
-        # traitement ici
-
-    django_engine = engines['Django']
-    template = django_engine.get_template("zilencer/formulaire_debat.html")
-    return HttpResponse(template.render({}, request))
-
-
-def join_debat_view(request):
-    return render(request, 'zilencer/join_debat.html')
 
 
 logger = logging.getLogger(__name__)

@@ -719,12 +719,30 @@ two_factor_template_engine_settings = {
     "OPTIONS": two_factor_template_options,
 }
 
+django_template_engine_settings = {
+    "NAME": "Django",
+    "BACKEND": "django.template.backends.django.DjangoTemplates",
+    "DIRS": [os.path.join(DEPLOY_ROOT, "templates")],  # à adapter
+    "APP_DIRS": True,
+    "OPTIONS": {
+        "context_processors": [
+            "django.template.context_processors.debug",
+            "django.template.context_processors.request",
+            "django.contrib.auth.context_processors.auth",
+            "django.template.context_processors.csrf",
+            "django.template.context_processors.i18n",
+        ],
+    },
+}
+# We use the Jinja2 template engine for most of our templates, but
+
 # The order here is important; get_template and related/parent functions try
 # the template engines in order until one succeeds.
 TEMPLATES = [
     default_template_engine_settings,
     non_html_template_engine_settings,
     two_factor_template_engine_settings,
+    django_template_engine_settings, 
 ]
 ########################################################################
 # LOGGING SETTINGS
