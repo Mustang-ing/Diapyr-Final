@@ -1,17 +1,10 @@
 import json
 import os
-<<<<<<< HEAD
-import django
+import sys
+
 import sys
 # Set the settings module from your Zulip settings (adjust path if needed)
 sys.path.append("/home/ghostie/Diapyr/Diapyr-Final")
-=======
-import sys
-
-
-# Set the settings module from your Zulip settings (adjust path if needed)
-sys.path.append("/home/jass/Diapyr/Diapyr-Final") 
->>>>>>> upstream/gest_debat
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zproject.settings")
 
 import django
@@ -23,16 +16,10 @@ from datetime import datetime, timedelta, timezone
 import time
 import threading
 from zerver.models.debat import Debat,Participant
-<<<<<<< HEAD
 import random
 import math
 from typing import Dict, List, Set
 from bs4 import BeautifulSoup
-=======
-from datetime import datetime
-import statistics
-
->>>>>>> upstream/gest_debat
 # Configuration du bot
 client = None
 # Statistiques pour voir le nb de msg/caracteres envoyés:
@@ -79,47 +66,12 @@ class ObjectD:
     def split_into_groups(self) -> list[list[str]]:
         print("Répartition des utilisateurs en groupes...")
         users = list(self.subscribers.keys())
-<<<<<<< HEAD
         if self.creator_email in users:
             users.remove(self.creator_email)
         random.shuffle(users)
         groups = [users[i:i + self.max_per_group] for i in range(0, len(users), self.max_per_group)]
         for group in groups:
             group.append(self.creator_email)  # Ajout fictif du créateur
-=======
-        random.shuffle(users)  
-    
-        n = len(users) 
-        m = self.max_per_group  
-
-        if n <= m:
-            return [users]
-
-    
-        print(f"Nombre de participants : {n}, Nombre maximal de participants par groupe : {m}")
-        try:
-            num_groups = n // m
-            print(f"Nombre de groupes calculé : {num_groups}")
-        except ZeroDivisionError:
-            return []
-        
-        if n % m > 0 and (n % m) < (m / 2) and num_groups > 1:  #Si il existe au moin 1 groupe problématique et qu'il est trop petit, on supprime un groupe
-            print("Condition activée pour réduire le nombre de groupes.")
-            num_groups -= 1  # On réduit pour éviter un groupe trop petit
-
-        
-        min_per_group = n // num_groups
-        r = n % num_groups
-        groups = []
-        print(f"Resultatat de la division : reste = {r}, min_per_group = {min_per_group}, max_per_group = {self.max_per_group}")
-        start = 0
-        for i in range(num_groups):
-            group_size = min_per_group + (1 if i < r else 0) # On fait +1 tant que le nombre de peronne problématique n'est pas traité 
-            groups.append(users[start:start + group_size])
-            start += group_size
-
-        print(f"Groupes créés : {len(groups)} - Groupes : {groups}")
->>>>>>> upstream/gest_debat
         return groups
     
     def create_streams_for_groups(self, groups: list[list[str]]) -> list[str]:
@@ -134,33 +86,10 @@ class ObjectD:
                 streams.append(stream_name)
         return streams
 
-<<<<<<< HEAD
     def next_step(self) -> bool:
         print("Passage à l'étape suivante...")
         users = list(self.subscribers.keys())
         if len(users) <= self.max_per_group:
-=======
-    def next_step(self):
-        users = list(self.subscribers.keys())
-        if users is None or len(users) == 0:
-            print(f"Aucun utilisateur inscrit dans le débat '{self.name}'.")
-            return False
-        
-        num_groups = len(users) //  self.max_per_group
-        for i in range(num_groups):  #On récupere le nombre de groupe de l'étape acutel afin d'avoir leurs stream 
-            stream_name = f"{self.name}{'I'*self.step}{i+1}" #On prend leurs noms 
-            try:
-                stream_id = client.get_stream_id(stream_name)["stream_id"]
-                client.delete_stream(stream_id)
-                print(f" Archivage du stream {stream_name} ")
-            except Exception as e:
-                print(f" Erreur sur le stream{stream_name} |  {str(e)}")
-
-                
-        
-        #On vérifie si leurs nombre est assez grand pour etre divisé OU que le nombre de passes choisit est inférieur OU au moins 2 utilisateurs
-        if len(users) <= self.max_per_group or self.step >= self.num_pass or len(users) < 2:
->>>>>>> upstream/gest_debat
             return False
         selected_users = random.sample(users, min(self.num_pass * (len(users) // self.max_per_group), len(users)))
         self.subscribers = {user: self.subscribers[user] for user in selected_users}
@@ -329,7 +258,6 @@ class ObjectD:
 
     # fonction pour commencer le debat
 
-<<<<<<< HEAD
     def start_debate_process(self) -> None:
 
         def run_steps() -> None:
@@ -340,39 +268,6 @@ class ObjectD:
                     total_seconds = int(self.time_between_steps.total_seconds())
                     print(f"\n---\nAttente de {self.time_between_steps} avant étape {self.step}...")
                     time.sleep(total_seconds)
-=======
-    def start_debate_process(self) -> None: #N'aurait t'on pas pu faire une seule fonction pour gérer les étapes ? Ou voir les décorateurs ?
-        def run_steps() -> None:
-            while True:
-                print(f"Attente de {self.time_between_steps} avant la prochaine étape...")
-                time.sleep(self.time_between_steps.total_seconds())
-                if not self.next_step():
-                    print(f"Débat '{self.name}' terminé. Plus qu’un seul groupe.")
-                    users = list(self.subscribers.keys())
-                    print(f"Liste des users: {users}")  
-                    for mail in users:
-                        print(f"Envoi à: {mail}")  
-                        client.send_message({
-                            "type": "private",
-                            "to": mail,
-                            "content": f"Le débat'{self.name}' est terminé. Merci d'avoir participé !",
-                        })
-                    try:
-                        debat = Debat.objects.get(title=self.name)
-                        debat.is_archived = True
-                        debat.save()
-                        print(f"Débat '{self.name}' archivé dans la base de données.")
-                    except Debat.DoesNotExist:
-                        print(f"Erreur: Débat '{self.name}' non trouvé dans la base de données.")
-                    except Exception as e:
-                        print(f"Erreur lors de la suppression du débat: {str(e)}")
-                    print(f"Suppression du débat{self.name}")                    
-                    # Suppression de la liste en mémoire
-                    if self.name in listeDebat:
-                        del listeDebat[self.name]
-                    break
-            
->>>>>>> upstream/gest_debat
 
                     print(f"\n=== Début étape {self.step} du débat '{self.name}' ===")
 
@@ -751,7 +646,6 @@ def create_debat() -> None:
 def add_user() -> None:
     print("Vérification des utilisateurs à ajouter...")
     for debat in Debat.objects.all():
-<<<<<<< HEAD
         print(f"Vérification des utilisateurs pour le débat : {debat.title}")
         if debat.debat_created:
             for user in debat.debat_participant.all():
@@ -770,63 +664,21 @@ def add_user() -> None:
 def event_listener():
     print("Démarrage de l'écoute des événements...")
     client.call_on_each_event(handle_reaction, event_types=['reaction'])
-=======
-        print(f"Vérification pour le débat : {debat.title}")
-        if debat.debat_created and debat.title in listeDebat and not debat.is_archived:
-            obj = listeDebat[debat.title]
-            # Vérifie si la période d'inscription est terminée
-            if current_time > obj.end_date:
-                #-------------------------Partie message au créateur-------------------------------------------
-                email =""#Vide à cause du probleme de compte
-                participant = len(obj.subscribers)
-
-                message = {
-                    "type": "private",
-                    "to": email,
-                    "content": f"Vous avez crée le débat '{debat.title}' \n Il compose à présent '{participant}' personnes à son actif\n Veillez entrer le nombre d'élue à faire passer : ",
-                }
-                #-----------------------------------------------------------------------------------------------
-                
-                for user in debat.debat_participant.all():
-                    if not user.is_register:
-                        print(f"Ajout de l'utilisateur : {user.pseudo}")
-                        user.email = get_email_by_full_name(user.pseudo)
-                        if user.email is not None:
-                            obj.add_subscriber(user.email, {"name": user.pseudo})
-                            user.is_register = True
-                            user.save()
-                        else:
-                            print(f"Utilisateur {user.pseudo} non trouvé dans Zulip.")
-            else:
-                print(f"Période d'inscription toujours en cours pour '{debat.title}'. Fin prévue à {obj.end_date}.")
->>>>>>> upstream/gest_debat
 
 def main_loop() -> None:
     #Boucle principale du bot.
     print("Démarrage de la boucle principale...")
-<<<<<<< HEAD
     i=0
     
-=======
-    i=0 #Utilité ?
-    #get_client()  
->>>>>>> upstream/gest_debat
     while True:
 
-        #print(client.get_members())
         #On génére les debats qui n'ont pas encore été génére depuis la table debat
         create_debat()
         #On ajoute les utilisateurs qui ne sont pas encore inscrits
         #print(listeDebat)
         add_user()
-        # Vérifie si la période d'sinscription est terminée et crée les channels si nécessaire
+        # Vérifie si la période d'inscription est terminée et crée les channels si nécessaire
         check_and_create_channels()
-<<<<<<< HEAD
-=======
-
-       
-
->>>>>>> upstream/gest_debat
         #print(get_all_zulip_user_emails())
         
         #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
