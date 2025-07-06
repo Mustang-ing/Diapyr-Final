@@ -619,7 +619,7 @@ LOCAL_FILES_DIR = os.path.join(LOCAL_UPLOADS_DIR, "files") if LOCAL_UPLOADS_DIR 
 if not DEBUG:
     STORAGES = {"staticfiles": {"BACKEND": "zerver.lib.storage.ZulipStorage"}}
     if PRODUCTION:
-        STATIC_ROOT = "/home/zulip/prod-static"
+        STATIC_ROOT = "/home/ghilo/Projet_fin_licence/diapyr/Diapyr-Final/prod-static"
     else:
         STATIC_ROOT = os.path.abspath(os.path.join(DEPLOY_ROOT, "prod-static/serve"))
 
@@ -632,7 +632,7 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 0
 
 if DEVELOPMENT or "ZULIP_COLLECTING_STATIC" in os.environ:
     STATICFILES_DIRS = [os.path.join(DEPLOY_ROOT, "static"),
-            "/home/ing-tester/zulip/web",        # Additional path
+            "/home/ghilo/Projet_fin_licence/diapyr/Diapyr-Final/web",        # Additional path
 ]
 
 if DEBUG:
@@ -719,13 +719,32 @@ two_factor_template_engine_settings = {
     "OPTIONS": two_factor_template_options,
 }
 
+
+django_template_engine_settings = {
+    "NAME": "Django",
+    "BACKEND": "django.template.backends.django.DjangoTemplates",
+    "DIRS": [os.path.join(DEPLOY_ROOT, "templates")],  # à adapter
+    "APP_DIRS": True,
+    "OPTIONS": {
+        "context_processors": [
+            "django.template.context_processors.debug",
+            "django.template.context_processors.request",
+            "django.contrib.auth.context_processors.auth",
+            "django.template.context_processors.csrf",
+            "django.template.context_processors.i18n",
+        ],
+    },
+}
+
 # The order here is important; get_template and related/parent functions try
 # the template engines in order until one succeeds.
 TEMPLATES = [
     default_template_engine_settings,
     non_html_template_engine_settings,
     two_factor_template_engine_settings,
+    django_template_engine_settings, 
 ]
+
 ########################################################################
 # LOGGING SETTINGS
 ########################################################################

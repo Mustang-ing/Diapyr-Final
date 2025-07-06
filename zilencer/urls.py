@@ -47,3 +47,9 @@ urlpatterns = [
     path("api/v1/", include(push_bouncer_patterns)),
     path("api/v1/", include(billing_patterns)),
 ]
+from zilencer import views as zilencer_views
+
+urlpatterns += [
+    path("formulaire/", zilencer_views.formulaire_debat_view, name="formulaire"),
+    path("join/", zilencer_views.join_debat_view, name="join"),
+]

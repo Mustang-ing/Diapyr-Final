@@ -39,7 +39,7 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
 
         return redirect('diapyr_home')  # Redirect to diapyr_home after successful form submission
     else:
-        return render(request, 'zerver/app/formulaire_debat.html')
+        return render(request, 'zilencer/formulaire_debat.html')
 
 def diapyr_home(request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
@@ -66,4 +66,4 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
             return HttpResponse("Debate not found.", status=404)
 
     else:
-        return render(request, 'zerver/app/diapyr_join_debat.html', {'debat': debat})
+        return render(request, 'zilencer/join_debat.html', {'debat': debat})

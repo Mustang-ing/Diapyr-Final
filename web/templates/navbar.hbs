@@ -9,9 +9,121 @@
             <a href="" class="brand no-style">
                 <img id="realm-navbar-wide-logo" src="" alt="" class="nav-logo no-drag"/>
             </a>
-            <a href="diapyr_home" target="_blank" rel="noopener noreferrer" class="view-debate-button">
+            {{!-- <a href="diapyr_home" target="_blank" rel="noopener noreferrer" class="view-debate-button">
                 View your debate
+            </a> --}}
+       
+      
+
+        
+
+            <style>
+            .diapyr-modal {
+            display: none;
+            position: fixed;
+            z-index: 9999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.6);
+            }
+            .diapyr-modal-content-wrapper {
+            background-color: white;
+            margin: 10% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25);
+            }
+        </style>
+
+
+
+            <style>
+            #diapyr-dropdown {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                min-width: 180px;
+                background-color: #fff;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                list-style: none;
+                padding: 8px 0;
+                margin: 8px 0 0 0;
+                border-radius: 6px;
+                transition: opacity 0.2s ease, transform 0.2s ease;
+                z-index: 1000;
+            }
+
+            #diapyr-dropdown li {
+                padding: 10px 20px;
+                cursor: pointer;
+                font-size: 14px;
+                color: #333;
+                transition: background-color 0.2s ease;
+            }
+
+            #diapyr-dropdown li:hover {
+                background-color: #f0f4f8;
+                color: #0056b3;
+            }
+
+            /* pour le bouton parent */
+            #diapyr-toggle {
+                font-weight: 500;
+                display: flex;
+                align-items: center;
+                gap: 6px;
+                color: #337ab7;
+            }
+
+            #diapyr-toggle:hover {
+                text-decoration: underline;
+            }
+        </style>
+
+        
+
+
+        <div class="navbar-item" style="margin-left: 20px; position: relative;">
+            <a href="#" id="diapyr-toggle" class="header-button" style="white-space: nowrap;">
+               ➕  Diapyr
             </a>
+            <ul id="diapyr-dropdown">
+                <li id="open-create-debate-modal">Créer un débat</li>
+                <li id="open-join-debate-modal">Rejoindre un débat</li> 
+            </ul>
+
+        </div>
+
+        <script>
+            setTimeout(function () {
+                const toggle = document.getElementById("diapyr-toggle");
+                const dropdown = document.getElementById("diapyr-dropdown");
+
+                if (toggle && dropdown) {
+                    toggle.addEventListener("click", function (e) {
+                        e.preventDefault();
+                        dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+                    });
+
+                    document.addEventListener("click", function (e) {
+                        if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
+                            dropdown.style.display = "none";
+                        }
+                    });
+                } else {
+                    console.warn("🔍 Bouton ou dropdown non trouvé !");
+                }
+            }, 1000); // délai pour laisser le DOM de Zulip se charger
+    </script>
+
+
+{{!--  --}}
+
         </div>
         <div class="column-middle" id="navbar-middle">
             <div class="column-middle-inner">
@@ -74,3 +186,64 @@
         </div>
     </nav>
 </div>
+
+
+<!-- Modale Diapyr -->
+<div id="diapyr-modal" class="diapyr-modal">
+    <div class="diapyr-modal-content-wrapper">
+        <button id="close-diapyr-modal" style="float: right;">✖</button>
+        <div id="diapyr-modal-content"></div>
+    </div>
+</div>
+<script>
+setTimeout(function () {
+    const btnCreate = document.querySelector("#open-create-debate-modal");
+    const btnJoin = document.querySelector("#open-join-debate-modal");
+    const btnClose = document.querySelector("#close-diapyr-modal");
+
+    if (btnCreate && btnJoin && btnClose) {
+        btnCreate.addEventListener("click", function () {
+            console.log("🟢 Bouton 'Créer un débat' cliqué");
+            openDiapyrModal("/formulaire/");
+        });
+
+        btnJoin.addEventListener("click", function () {
+            console.log("🟢 Bouton 'Rejoindre un débat' cliqué");
+            openDiapyrModal("/join/");
+        });
+
+        btnClose.addEventListener("click", function () {
+            document.getElementById("diapyr-modal").style.display = "none";
+            document.getElementById("diapyr-modal-content").innerHTML = "";
+        });
+
+        // rend la fonction accessible globalement
+        window.openDiapyrModal = function (url) {
+            fetch(url, {
+                method: 'GET',
+                credentials: 'include',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (!response.ok) throw new Error(`Erreur ${response.status}`);
+                return response.text();
+            })
+            .then(html => {
+                document.getElementById("diapyr-modal-content").innerHTML = html;
+                document.getElementById("diapyr-modal").style.display = "block";
+            })
+            .catch(error => {
+                console.error('Erreur lors du chargement du formulaire :', error);
+                document.getElementById("diapyr-modal-content").innerHTML = "<p>Erreur de chargement du formulaire.</p>";
+                document.getElementById("diapyr-modal").style.display = "block";
+            });
+        };
+    } else {
+        console.warn("❌ Les boutons ne sont pas encore dans le DOM !");
+    }
+}, 1000); // attend 1 seconde que Zulip charge le HTML
+
+</script>
+
