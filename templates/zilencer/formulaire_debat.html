@@ -15,7 +15,8 @@
     <h2> Vos informations personnelles </h2>
 
     
-    <form method="POST" action="">
+    <form method="POST" action="formulaire/">
+        <!-- Utilisation de la balise {% csrf_token %} pour la sécurité -->
        {% csrf_token %}
 
         <div class="form-group">
