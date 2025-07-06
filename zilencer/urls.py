@@ -49,7 +49,3 @@ urlpatterns = [
 ]
 from zilencer import views as zilencer_views
 
-urlpatterns += [
-    path("formulaire/", zilencer_views.formulaire_debat_view, name="formulaire"),
-    path("join/", zilencer_views.join_debat_view, name="join"),
-]

@@ -1,6 +1,5 @@
 import os
-from zilencer.views import formulaire_debat_view, join_debat_view
-from zilencer.views import diapyr_home, diapyr_join_debat
+
 
 
 from django.conf import settings
@@ -253,7 +252,7 @@ from zerver.views.video_calls import (
 
 from zerver.views.zephyr import webathena_kerberos_login
 from zproject import dev_urls
-from zerver.views.diapyr import formulaire_debat,diapyr_home,diapyr_join_debat
+from zerver.views.diapyr import formulaire_debat_view,join_debat_view,diapyr_home
 
 
 if settings.TWO_FACTOR_AUTHENTICATION_ENABLED:  # nocoverage
@@ -664,9 +663,9 @@ i18n_urls = [
     path("integrations/doc-html/<integration_name>", integration_doc),
     path("integrations/", integrations_view),
     path("integrations/<path:path>", integrations_view),
-    path("diapyr_debat/",formulaire_debat,name="diapyr_debat_form"),
+    #path("diapyr_debat/",formulaire_debat,name="diapyr_debat_form"),
     path("diapyr_home/",diapyr_home,name="diapyr_home"),
-    path("diapyr_join_debat/",diapyr_join_debat,name="diapyr_join_debat"),
+    #path("diapyr_join_debat/",diapyr_join_debat,name="diapyr_join_debat"),
 
     #path("diapyr/formulaire_debat/", formulaire_debat_view, name="formulaire_debat"),
     #path("diapyr/join_debat/", join_debat_view, name="join_debat"),

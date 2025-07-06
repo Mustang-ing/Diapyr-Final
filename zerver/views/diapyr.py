@@ -12,6 +12,7 @@ from django.http import HttpResponse
 
 @csrf_protect
 def formulaire_debat_view(request):
+    print("Formulaire_debat_view called")
     if request.method == "POST":
         print("Données reçues :", request.POST)
         print('La méthode de requête est : ', request.method)
@@ -88,11 +89,11 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
         return redirect('diapyr_home')  # Redirect to diapyr_home after successful form submission
     else:
         return render(request, 'zilencer/formulaire_debat.html')
-
+"""
 def diapyr_home(request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
     return render(request, 'zerver/app/diapyr_home.html', {'debat': debat})
-
+"""
 @csrf_exempt
 def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
