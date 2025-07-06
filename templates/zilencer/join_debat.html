@@ -3,14 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <title>Inscrivez-vous</title>
-    <link rel="stylesheet" type="text/css" href="{{ static('styles/formulaire_debat.css') }}">
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'styles/formulaire_debat.css' %}">
+
 </head>
 <body>
     <h1>Inscription au Débat</h1>
     
     
     <div class="container">
-        <form method="post" action="/diapyr_debat/">
+        <form method="post" action="join/">
+            <!-- Utilisation de la balise {% csrf_token %} pour la sécurité -->
+            {% csrf_token %}
 
    
     

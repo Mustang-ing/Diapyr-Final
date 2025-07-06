@@ -41,7 +41,7 @@ def formulaire_debat_view(request):
                 time_between_round=time_between_round,
                 num_pass=num_pass
             )
-            return redirect('diapyr_home')  # Redirect to diapyr_home after successful form submission
+            return redirect('home')  # Redirect to diapyr_home after successful form submission
         # traitement ici
 
     django_engine = engines['Django']
@@ -51,7 +51,29 @@ def formulaire_debat_view(request):
 
 
 def join_debat_view(request):
-    return render(request, 'zilencer/join_debat.html')
+    debat = Debat.objects.all()
+    print('La méthode de requête est : ', request.method)
+    print('Les données POST sont : ', request.POST)  
+
+    if request.method == "POST":
+        debat_id = request.POST.get('debat', '').strip()
+        username = request.POST.get('username', '').strip()
+        try:
+            debat = Debat.objects.get(debat_id=debat_id)
+            participant = Participant.objects.create(
+                pseudo=username
+            )
+            
+            debat.debat_participant.add(participant)
+            return redirect('home')  # Redirect to diapyr_home after successfully joining a debate
+        except Debat.DoesNotExist:
+            return HttpResponse("Debate not found.", status=404)
+
+    django_engine2 = engines['Django']
+    template2 = django_engine2.get_template("zilencer/join_debat.html")
+
+    return HttpResponse(template2.render({'debat': debat}, request))
+
 
 """
 @csrf_exempt
