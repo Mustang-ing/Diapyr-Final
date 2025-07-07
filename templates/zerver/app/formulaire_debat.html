@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Inscription au Débat</title>
-    {% load static %}
 
     <link rel="stylesheet" type="text/css" href="{{ static('styles/formulaire_debat.css') }}">
 </head>
@@ -14,7 +13,6 @@
 
     
     <form method="POST" action="">
-        {% csrf_token %}
 
         <div class="form-group">
             <label>Genre:</label>
