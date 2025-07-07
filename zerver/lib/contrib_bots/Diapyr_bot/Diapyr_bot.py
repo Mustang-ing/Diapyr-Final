@@ -70,17 +70,10 @@ class ObjectD:
             if add_users_to_stream(stream_name, group):
                 notify_users(stream_name, group)
                 streams.append(stream_name)
+                self.group_members = {stream_name: group}  # Met à jour les membres du groupe
+                print(f"Stream {stream_name} créé avec succès pour le groupe {group}.")
         return streams
 
-    def next_step(self) -> bool:
-        print("Passage à l'étape suivante...")
-        users = list(self.subscribers.keys())
-        if len(users) <= self.max_per_group:
-            return False
-        selected_users = random.sample(users, min(self.num_pass * (len(users) // self.max_per_group), len(users)))
-        self.subscribers = {user: self.subscribers[user] for user in selected_users}
-        self.step += 1
-        return True
 
     def get_status(self) -> str:
         users = list(self.subscribers.keys())
@@ -113,7 +106,29 @@ class ObjectD:
 
         # fonction pour envoyer sondage final
 
-    def send_final_poll(self, stream_name: str, candidates: List[str]) -> Set[str]:
+    
+    def send_poll2(self,stream_name: str, candidates: List[str]) -> Set[str]:
+        print(f"Envoi du sondage final pour {stream_name} avec candidats: {candidates}")
+        if stream_name not in self.group_members:
+            print(f"Unknown stream: {stream_name}")
+            return set()
+        
+        group = self.group_members[stream_name]
+        if not group or not candidates:
+            print(f"No valid candidates in {stream_name}")
+            return set()
+        
+         # Get member names
+        try:
+            all_members = get_all_zulip_user_emails()
+            email_to_name = {m["email"]: m["full_name"] for m in all_members}
+            #print(f"Members fetched for {stream_name}: {email_to_name}")
+        except Exception as e:
+            print(f"Error getting members: {e}")
+            return set()
+
+
+    def send_poll(self, stream_name: str, candidates: List[str]) -> Set[str]:
         """Send final poll and process votes allowing multiple votes per member."""
         print(f"Envoi du sondage final pour {stream_name} avec candidats: {candidates}")
         if stream_name not in self.group_members:
@@ -241,7 +256,32 @@ class ObjectD:
         print(f"Collected responses for {stream_name}: {self.selected}")
         return self.selected
 
+    def next_step(self) -> bool:
+        print("Passage à l'étape suivante...")
+        # 1. Création des groupes
+        users = list(self.subscribers.keys())
+        if users is None or len(users) == 0:
+            print(f"Aucun utilisateur inscrit dans le débat '{self.name}'.")
+            return False
+       
+        # 2. Envoi des MPs
+        for stream_name in self.group_members:
+            self.send_enquete(self.group_members[stream_name])
+            print(f"envoie enquete au stream {stream_name}...")
 
+        # 3. Attente des réponses
+        print("\nEn attente des réponses à l'enquéte...")
+        time.sleep(45)  # Attendre 20 secondes pour les réponses
+
+        # 4. Traitement des réponses
+        #A paraleliser, on fait de manière séquentielle pour chaque streams c'est trop lent
+        selected_members = set()
+        for stream_name in self.group_members:
+            responders = self.collect_reponses(stream_name)
+            #print(f"Réponses collectées pour {stream_name}: {responders}")
+            if responders:
+                selected = self.send_poll(stream_name, responders)
+                selected_members.update(selected)
 
     # fonction pour commencer le debat
 
@@ -286,7 +326,7 @@ class ObjectD:
                         responders = self.collect_reponses(stream_name)
                         #print(f"Réponses collectées pour {stream_name}: {responders}")
                         if responders:
-                            selected = self.send_final_poll(stream_name, responders)
+                            selected = self.send_poll(stream_name, responders)
                             selected_members.update(selected)
                     # 5. Préparation étape suivante
                     if not selected_members:
@@ -365,7 +405,7 @@ def get_email_by_full_name(full_name: str) -> str:
     return None  # Not found
 
 
-def get_all_zulip_user_emails():
+def get_all_zulip_user_emails() -> list[str]:
     result = get_client().get_members()
     return [user["email"] for user in result["members"]]
 
