@@ -88,11 +88,11 @@ def join_debat_view(request):
 
 
 
-"""
+
 @csrf_exempt
 def formulaire_debat(request: HttpRequest) -> HttpResponse:
     
-    View to render the debate form page and handle POST requests.
+    #View to render the debate form page and handle POST requests.
     
     print('La méthode de requête est : ', request.method)
     print('Les données POST sont : ', request.POST) 
@@ -123,12 +123,12 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
 
         return redirect('diapyr_home')  # Redirect to diapyr_home after successful form submission
     else:
-        return render(request, 'zilencer/formulaire_debat.html')
-"""
+        return render(request, 'zerver/app/formulaire_debat.html')
+
 def diapyr_home(request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
     return render(request, 'zerver/app/diapyr_home.html', {'debat': debat})
-"""
+
 @csrf_exempt
 def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
@@ -150,5 +150,5 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
             return HttpResponse("Debate not found.", status=404)
 
     else:
-        return render(request, 'zilencer/join_debat.html', {'debat': debat})
-"""
+        return render(request, 'zerver/app/diapyr_join_debat.html', {'debat': debat})
+
