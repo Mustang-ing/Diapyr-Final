@@ -12,12 +12,15 @@ document.getElementById('debateForm').addEventListener('submit', async (e) => {
 
     // Construction de l'objet données
     const formData = {
-        age: age,
-        gender: document.getElementById('gender').value,
-        country: document.getElementById('country').value,
-        level: document.getElementById('level').value,
-        timestamp: new Date().toISOString()
-    };
+    age: age,
+    gender: document.getElementById('gender').value,
+    country: document.getElementById('country').value,
+    level: document.getElementById('level').value,
+    debateName: document.getElementById('debateName').value,
+    email: document.getElementById('email').value,
+    timestamp: new Date().toISOString()
+};
+
 
     try {
         // Envoi au serveur

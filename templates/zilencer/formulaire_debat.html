@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title>Inscription au Débat</title>
+    
     {% load static %}
 
-    <link rel="stylesheet" type="text/css" href="{{ static('styles/formulaire_debat.css') }}">
+    <link rel="stylesheet" type="text/css" href="{% static 'styles/formulaire_debat.css' %}">
+
 </head>
 <body>
     <h1>Créer un débat</h1>
@@ -13,8 +15,9 @@
     <h2> Vos informations personnelles </h2>
 
     
-    <form method="POST" action="">
-        {% csrf_token %}
+    <form method="POST" action="formulaire/">
+        <!-- Utilisation de la balise {% csrf_token %} pour la sécurité -->
+       {% csrf_token %}
 
         <div class="form-group">
             <label>Genre:</label>

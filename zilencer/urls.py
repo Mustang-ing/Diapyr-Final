@@ -47,3 +47,5 @@ urlpatterns = [
     path("api/v1/", include(push_bouncer_patterns)),
     path("api/v1/", include(billing_patterns)),
 ]
+from zilencer import views as zilencer_views
+

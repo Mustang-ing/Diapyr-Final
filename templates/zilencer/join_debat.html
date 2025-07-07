@@ -3,24 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <title>Inscrivez-vous</title>
-    <link rel="stylesheet" type="text/css" href="{{ static('styles/formulaire_debat.css') }}">
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'styles/formulaire_debat.css' %}">
+
 </head>
 <body>
     <h1>Inscription au Débat</h1>
     
     
     <div class="container">
-        <form method="post" action="">
+        <form method="post" action="join/">
+            <!-- Utilisation de la balise {% csrf_token %} pour la sécurité -->
+            {% csrf_token %}
 
+   
     
             <div class="form-group">
                 <label for="debat">Sélectionnez un débat:</label>
+                
                 <select id="debat" name="debat" required>
                     <option value="">-- Sélectionnez --</option>
                     {% for deb in debat %}
-                    {% if not deb.is_archived %}
-                         <option value="{{ deb.debat_id }}">{{ deb.title }}</option>
-                    {% endif %}
+                        <option value="{{ deb.debat_id }}">{{ deb.title }}</option>
                     {% endfor %}
                 </select>
             </div>

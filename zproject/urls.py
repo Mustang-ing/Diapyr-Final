@@ -1,5 +1,7 @@
 import os
 
+
+
 from django.conf import settings
 from django.conf.urls import include
 from django.conf.urls.i18n import i18n_patterns
@@ -250,7 +252,7 @@ from zerver.views.video_calls import (
 
 from zerver.views.zephyr import webathena_kerberos_login
 from zproject import dev_urls
-from zerver.views.diapyr import formulaire_debat,diapyr_home,diapyr_join_debat
+from zerver.views.diapyr import formulaire_debat_view,join_debat_view,diapyr_join_debat,formulaire_debat,diapyr_home
 
 
 if settings.TWO_FACTOR_AUTHENTICATION_ENABLED:  # nocoverage
@@ -664,6 +666,11 @@ i18n_urls = [
     path("diapyr_debat/",formulaire_debat,name="diapyr_debat_form"),
     path("diapyr_home/",diapyr_home,name="diapyr_home"),
     path("diapyr_join_debat/",diapyr_join_debat,name="diapyr_join_debat"),
+
+   
+    path("formulaire/", formulaire_debat_view, name="formulaire"),
+    path("join/", join_debat_view, name="join"),
+
 ]
 
 # Make a copy of i18n_urls so that they appear without prefix for english
@@ -924,3 +931,4 @@ urls += [path("health", health)]
 # reverse URL mapping points to i18n URLs which causes the frontend
 # tests to fail
 urlpatterns = i18n_patterns(*i18n_urls) + urls
+
