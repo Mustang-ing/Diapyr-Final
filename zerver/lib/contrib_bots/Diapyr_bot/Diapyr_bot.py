@@ -96,9 +96,9 @@ class ObjectD:
         return info
 
     
-    # Méthode  pour envoyer une question d'enquette pour tous les participants
+    # Méthode pour envoyer une question d'enquette pour tous les participants
 
-    def send_enquette(self, group_members: list[str]) -> None:
+    def send_enquete(self, group_members: list[str]) -> None:
         for member in group_members:
             try:
                 result = client.send_message({
@@ -115,6 +115,7 @@ class ObjectD:
 
     def send_final_poll(self, stream_name: str, candidates: List[str]) -> Set[str]:
         """Send final poll and process votes allowing multiple votes per member."""
+        print(f"Envoi du sondage final pour {stream_name} avec candidats: {candidates}")
         if stream_name not in self.group_members:
             print(f"Unknown stream: {stream_name}")
             return set()
@@ -128,12 +129,14 @@ class ObjectD:
         try:
             all_members = client.get_members()["members"]
             email_to_name = {m["email"]: m["full_name"] for m in all_members}
+            #print(f"Members fetched for {stream_name}: {email_to_name}")
         except Exception as e:
             print(f"Error getting members: {e}")
             return set()
 
         # Filter valid candidates
         valid_candidates = [c for c in candidates if c in group and c in email_to_name]
+        print(f"Valid candidates for {stream_name}: {valid_candidates}")
         if not valid_candidates:
             print(f"No valid candidates in {stream_name}")
             return set()
@@ -156,7 +159,7 @@ class ObjectD:
             return set()
 
         # Wait for votes (simulated)
-        time.sleep(120)  # Wait 2 minutes for votes
+        time.sleep(30)  # Wait 2 minutes for votes
         
         # Simulate realistic voting (each member votes for multiple candidates)
         vote_count = {c: 0 for c in valid_candidates}
@@ -266,20 +269,22 @@ class ObjectD:
                         stream_name = f"{self.name}{'I' * self.step}{i + 1}"
                         stream_names.append(stream_name)
                         self.group_members[stream_name] = group
+                    print(f"Groupes créés : {stream_names}")
 
                     # 2. Envoi des MPs
                     for stream_name in stream_names:
-                        self.send_enquette(self.group_members[stream_name])
-                    print(f"envoie enquette...")
+                        self.send_enquete(self.group_members[stream_name])
+                    print(f"envoie enquete...")
 
                     # 3. Attente des réponses
-                    print("\nEn attente des réponses à l'enquétte...")
-                    time.sleep(120) 
+                    print("\nEn attente des réponses à l'enquéte...")
+                    time.sleep(45)  # Attendre 20 secondes pour les réponses
 
                     # 4. Traitement des réponses
                     selected_members = set()
                     for stream_name in stream_names:
                         responders = self.collect_reponses(stream_name)
+                        #print(f"Réponses collectées pour {stream_name}: {responders}")
                         if responders:
                             selected = self.send_final_poll(stream_name, responders)
                             selected_members.update(selected)
@@ -294,6 +299,7 @@ class ObjectD:
                         for email, info in self.subscribers.items() 
                         if email in selected_members
                     }
+                    print(f"Membres sélectionnés pour l'étape {self.step}: {selected_members}")
                     self.step += 1
 
                     # Vérifier si fin du débat
@@ -371,7 +377,7 @@ listeDebat = {}
 
 def handle_message(msg: dict[str, str]) -> None:
     print("Message reçu")
-    print(msg)
+    print(msg["content"])
     content = msg["content"].strip()
     user_email = msg["sender_email"]
 
