@@ -1,7 +1,4 @@
 [api]
-email=Test3-bot@zulipdev.com
-key=sjkM46D15JXYfmJNqCdfbmrqLiC0MNIv
-site=http://localhost:9991
-
-
-
+email=test-bot@zulipdev.com
+key=77FEY5xheAUbv2TIugRrjherMG5pR5ag
+site=http://localhost:9991/

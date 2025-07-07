@@ -291,6 +291,7 @@ def main_loop() -> None:
     #Boucle principale du bot.
     print("Démarrage de la boucle principale...")
     i=0
+    get_client
     while True:
 
         #On génére les debats qui n'ont pas encore été génére depuis la table debat

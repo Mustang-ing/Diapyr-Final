@@ -96,6 +96,18 @@
             <input type="text" id="step" name="step" required>
         </div>
 
+        <!-- Critères personnalisés facultatifs -->
+            <div class="form-group criteres">
+            <h3>Critères personnalisés (facultatif)</h3>
+            <label><input type="checkbox" name="criteres[]" value="age"> Âge</label>
+            <label><input type="checkbox" name="criteres[]" value="profession"> Profession</label>
+            <label><input type="checkbox" name="criteres[]" value="etudes"> Niveau d’études</label>
+            <label><input type="checkbox" name="criteres[]" value="domaine"> Domaine</label>
+            <label><input type="checkbox" name="criteres[]" value="experience"> Expérience en débat</label>
+        </div>
+
+
+
         <div class="form-group">
             <label for="description">Description du débat</label>
             <textarea id="description" name="description" rows="4" cols="50" placeholder="Décrivez le sujet du débat ici..."></textarea>
