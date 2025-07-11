@@ -9,6 +9,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zproject.settings")
 
 import django
 django.setup()
+import math
 
 import zulip
 import random
@@ -78,14 +79,12 @@ class ObjectD:
     
         print(f"Nombre de participants : {n}, Nombre maximal de participants par groupe : {m}")
         try:
-            num_groups = n // m
+            num_groups = math.ceil(n/m)
+            print( math.ceil(n/m))
             print(f"Nombre de groupes calculé : {num_groups}")
         except ZeroDivisionError:
             return []
-        
-        if n % m > 0 and (n % m) < (m / 2) and num_groups > 1:  #Si il existe au moin 1 groupe problématique et qu'il est trop petit, on supprime un groupe
-            print("Condition activée pour réduire le nombre de groupes.")
-            num_groups -= 1  # On réduit pour éviter un groupe trop petit
+
 
         
         min_per_group = n // num_groups
@@ -95,6 +94,7 @@ class ObjectD:
         start = 0
         for i in range(num_groups):
             group_size = min_per_group + (1 if i < r else 0) # On fait +1 tant que le nombre de peronne problématique n'est pas traité 
+            print(f"groupe size {group_size}")
             groups.append(users[start:start + group_size])
             start += group_size
 
