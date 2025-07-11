@@ -619,7 +619,7 @@ LOCAL_FILES_DIR = os.path.join(LOCAL_UPLOADS_DIR, "files") if LOCAL_UPLOADS_DIR 
 if not DEBUG:
     STORAGES = {"staticfiles": {"BACKEND": "zerver.lib.storage.ZulipStorage"}}
     if PRODUCTION:
-        STATIC_ROOT = "/home/ghilo/Projet_fin_licence/diapyr/Diapyr-Final/prod-static" #A remplacer par "/home/Diapyr-Final/prod-static"
+        STATIC_ROOT = "/home/zulip/prod-static" #A remplacer par "/home/Diapyr-Final/prod-static"
     else:
         STATIC_ROOT = os.path.abspath(os.path.join(DEPLOY_ROOT, "prod-static/serve"))
 
@@ -632,7 +632,7 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 0
 
 if DEVELOPMENT or "ZULIP_COLLECTING_STATIC" in os.environ:
     STATICFILES_DIRS = [os.path.join(DEPLOY_ROOT, "static"),
-        "/home/ghilo/Projet_fin_licence/diapyr/Diapyr-Final/web",        # Additional path - to be removed later
+        "/home/ing-tester/zulip/web",        # Additional path - to be removed later
 ]
 
 if DEBUG:
