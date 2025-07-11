@@ -14,6 +14,9 @@ from django.http import HttpResponse
 def formulaire_debat_view(request):
     print("Formulaire_debat_view called")
     if request.method == "POST":
+        criteres = request.POST.getlist("criteres[]")
+        print("✅ Critères cochés :", criteres)
+
         print("Données reçues :", request.POST)
         print('La méthode de requête est : ', request.method)
         print('Les données POST sont : ', request.POST) 
@@ -39,7 +42,8 @@ def formulaire_debat_view(request):
                 creator_email=creator_email,
                 max_per_group=max_per_group,
                 time_between_round=time_between_round,
-                num_pass=num_pass
+                num_pass=num_pass,
+                criteres=criteres 
             )
             return redirect('home')  # Redirect to diapyr_home after successful form submission
         # traitement ici
@@ -51,17 +55,24 @@ def formulaire_debat_view(request):
 
 
 def join_debat_view(request):
-    debat = Debat.objects.all()
+    debats = Debat.objects.all()
     print('La méthode de requête est : ', request.method)
     print('Les données POST sont : ', request.POST)  
 
     if request.method == "POST":
         debat_id = request.POST.get('debat', '').strip()
         username = request.POST.get('username', '').strip()
+
+        age = request.POST.get('age', '').strip()
+        domaine = request.POST.get('domaine', '').strip()
+        profession = request.POST.get('profession', '').strip()
         try:
             debat = Debat.objects.get(debat_id=debat_id)
             participant = Participant.objects.create(
-                pseudo=username
+                pseudo=username,
+                age=age ,
+                domaine=domaine ,
+                profession=profession 
             )
             
             debat.debat_participant.add(participant)
@@ -72,7 +83,9 @@ def join_debat_view(request):
     django_engine2 = engines['Django']
     template2 = django_engine2.get_template("zilencer/join_debat.html")
 
-    return HttpResponse(template2.render({'debat': debat}, request))
+    return HttpResponse(template2.render({'debats': debats}, request))
+
+
 
 
 
