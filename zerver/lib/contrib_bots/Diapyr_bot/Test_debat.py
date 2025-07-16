@@ -9,9 +9,8 @@ django.setup()
 import zulip
 from datetime import datetime, timedelta
 from zerver.models.debat import Debat,Participant
-from zerver.models.streams import Stream
- 
-
+#from zerver.lib.actions import do_delete_stream
+import time
 
 
 if __name__ == "__main__":
@@ -61,5 +60,16 @@ if __name__ == "__main__":
         )
         debat.debat_participant.add(participant)
         print(f"Participant créé : {participant.pseudo} avec l'email {participant.email}")
+
+
+    #Get the status 
+    while debat.is_archived == False:
+        debat.refresh_from_db()
+        print(f"Débat {debat.title} - Étape {debat.step} - Participants : {debat.debat_participant.count()}")
+        
+        
+        
+        # Wait for the next step
+        time.sleep(time_between_steps)
 
 
