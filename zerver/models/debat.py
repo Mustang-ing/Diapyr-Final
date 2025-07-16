@@ -45,7 +45,7 @@ class Debat(models.Model):
     is_archived = models.BooleanField(default=False, null=True)
     type = models.CharField(max_length=100, choices=Debate_Kind.choices,default=Debate_Kind.General)
     debat_participant = models.ManyToManyField(Participant)
-    criteres = ArrayField(models.CharField(max_length=50), default=list, blank=True)
+    criteres = ArrayField(models.CharField(max_length=50), default=list, blank=True, null=True)
 
     #group = models.ForeignKey(Group, null=True, on_delete=models.SET_NULL)
 
