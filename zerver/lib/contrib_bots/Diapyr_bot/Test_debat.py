@@ -1,9 +1,11 @@
 import django,os,sys
 
-# Set project root and settings
+
+#Old way to set the project root from zerver/lib/contrib_bots/Diapyr_bot/Test_debat.py
+""""
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../.."))
 sys.path.append(PROJECT_ROOT)
-
+"""
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zproject.settings")
 django.setup()
 import zulip
@@ -12,10 +14,9 @@ from zerver.models.debat import Debat,Participant
 #from zerver.lib.actions import do_delete_stream
 import time
 
-
-if __name__ == "__main__":
-    # Initialize the Zulip client
-    client = zulip.Client(config_file="zuliprc.txt")
+def main():
+     # Initialize the Zulip client
+    client = zulip.Client(config_file="zerver/lib/contrib_bots/Diapyr_bot/zuliprc.txt")
 
     total = 0
     real_user = []
@@ -71,5 +72,9 @@ if __name__ == "__main__":
         
         # Wait for the next step
         time.sleep(time_between_steps)
+
+if __name__ == "__main__":
+    main()
+   
 
 
