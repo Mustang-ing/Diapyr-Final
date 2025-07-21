@@ -12,7 +12,7 @@
     <h2> Vos informations personnelles </h2>
 
     
-    <form method="POST" action="">
+    <form method="POST" action="{{( url ('diapyr_debat_form'))}}">
 
         <div class="form-group">
             <label>Genre:</label>
@@ -90,6 +90,17 @@
             <label for="step">Nombre de passes</label>
             <input type="text" id="step" name="step" required>
         </div>
+
+         <!-- Critères personnalisés facultatifs -->
+            <div class="form-group criteres">
+            <h3>Critères personnalisés (facultatif)</h3>
+            <label><input type="checkbox" name="criteres[]" value="age"> Âge</label>
+            <label><input type="checkbox" name="criteres[]" value="profession"> Profession</label>
+            <label><input type="checkbox" name="criteres[]" value="etudes"> Niveau d’études</label>
+            <label><input type="checkbox" name="criteres[]" value="domaine"> Domaine</label>
+            <label><input type="checkbox" name="criteres[]" value="experience"> Expérience en débat</label>
+        </div>
+
 
         <div class="form-group">
             <label for="description">Description du débat</label>

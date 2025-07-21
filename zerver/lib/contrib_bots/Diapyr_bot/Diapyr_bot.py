@@ -123,7 +123,7 @@ class ObjectD:
             print(f"Aucun utilisateur inscrit dans le débat '{self.name}'.")
             return False
         
-        num_groups = len(users) //  self.max_per_group
+        num_groups = len(users) //  self.max_per_group 
         for i in range(num_groups):  #On récupere le nombre de groupe de l'étape acutel afin d'avoir leurs stream 
             stream_name = f"{self.name}{'I'*self.step}{i+1}" #On prend leurs noms 
             try:
@@ -546,6 +546,7 @@ def main_loop() -> None:
     while True:
 
         #print(client.get_members())
+         #print(members)
         #On génére les debats qui n'ont pas encore été génére depuis la table debat
         create_debat()
         #On ajoute les utilisateurs qui ne sont pas encore inscrits
@@ -560,21 +561,7 @@ def main_loop() -> None:
         
         #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
         #print(f"Affichager de la base de donnée : {Debat.objects.all()}")
-        
-        
-        #members = client.get_members()
-        #print(members)
-        """
-        owner_id = 26  # from get_profile()
-        owner_email = None
 
-        for member in members['members']:
-            if member['user_id'] == owner_id:
-                owner_email = member['email']
-                break
-
-        print("Bot owner email:", owner_email)
-        """
         # Attend quelques secondes avant de recommencer
         time.sleep(10)  # Attendre 10 secondes
         

@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect
 from django.http import HttpRequest, HttpResponse
+from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from zerver.models.debat import Debat, Participant
 from datetime import datetime, timedelta
@@ -88,7 +89,7 @@ def join_debat_view(request):
 
 
 
-
+# Fonctionnalité Diapyr sur la page d'accueil
 @csrf_exempt
 def formulaire_debat(request: HttpRequest) -> HttpResponse:
     
@@ -120,13 +121,15 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
             time_between_round=time_between_round,
             num_pass=num_pass
         )
-
-        return redirect('diapyr_home')  # Redirect to diapyr_home after successful form submission
+        return redirect(reverse('home'))  # Redirect to diapyr_home after successful form submission
     else:
         return render(request, 'zerver/app/formulaire_debat.html')
 
 def diapyr_home(request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
+    print(request.user)
+    print(type(request.user))
+    print(request.session.items())
     return render(request, 'zerver/app/diapyr_home.html', {'debat': debat})
 
 @csrf_exempt
@@ -145,7 +148,7 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
             )
             
             debat.debat_participant.add(participant)
-            return redirect('diapyr_home')  # Redirect to diapyr_home after successfully joining a debate
+            return redirect(reverse('home'))  # Redirect to diapyr_home after successfully joining a debate
         except Debat.DoesNotExist:
             return HttpResponse("Debate not found.", status=404)
 

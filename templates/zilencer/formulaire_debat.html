@@ -15,8 +15,10 @@
     <h2> Vos informations personnelles </h2>
 
     
-    <form method="POST" action="formulaire/">
-        <!-- Utilisation de la balise {% csrf_token %} pour la sécurité -->
+    <form method="POST" action="diapyr_create_debat/">
+        <!-- Utilisation de la balise {% csrf_token %} pour la sécurité 
+        On envoie dans formulaire/ les données du formulaire, car on au niveau de la racine de l'URL.
+        -->
        {% csrf_token %}
 
         <div class="form-group">

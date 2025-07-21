@@ -201,15 +201,16 @@ setTimeout(function () {
     const btnJoin = document.querySelector("#open-join-debate-modal");
     const btnClose = document.querySelector("#close-diapyr-modal");
 
+
     if (btnCreate && btnJoin && btnClose) {
         btnCreate.addEventListener("click", function () {
             console.log("🟢 Bouton 'Créer un débat' cliqué");
-            openDiapyrModal("/formulaire/");
+            openDiapyrModal("/diapyr_create_debat/");
         });
 
         btnJoin.addEventListener("click", function () {
             console.log("🟢 Bouton 'Rejoindre un débat' cliqué");
-            openDiapyrModal("/join/");
+            openDiapyrModal("/diapyr_join_debat/");
         });
 
         btnClose.addEventListener("click", function () {
@@ -218,6 +219,17 @@ setTimeout(function () {
         });
 
         // rend la fonction accessible globalement
+        /* Script pour ouvrir dynamiquement une modale "Page qui s'affiche au dessus des autres" dans Zulip.
+         * Permet d'ouvrir la modale avec un URL spécifique. On l'utilise en l'associant à l'objet window pour la rendre globale. On utilise fetch 
+         * pour envoyer une requête GET à l'URL spécifié, et on attend la réponse. Si la réponse est correcte, on injecte le contenu HTML dans la modale.
+         * Si la requête échoue, on affiche un message d'erreur dans la modale. 
+         * Il est important de noter que ce script doit être exécuté après que les boutons soient présents dans le DOM, d'où l'utilisation de setTimeout.
+         * @function openDiapyrModal
+         * @param {string} url - L'URL du formulaire à charger dans la modale. 
+         * @returns {void}
+        
+
+        */
         window.openDiapyrModal = function (url) {
             fetch(url, {
                 method: 'GET',

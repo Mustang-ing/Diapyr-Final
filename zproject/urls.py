@@ -663,7 +663,8 @@ i18n_urls = [
     path("integrations/doc-html/<integration_name>", integration_doc),
     path("integrations/", integrations_view),
     path("integrations/<path:path>", integrations_view),
-    path("diapyr_debat/",formulaire_debat,name="diapyr_debat_form"),
+    # Diapyr specific URLs
+    path("diapyr_create_debat/",formulaire_debat,name="diapyr_debat_form"),
     path("diapyr_home/",diapyr_home,name="diapyr_home"),
     path("diapyr_join_debat/",diapyr_join_debat,name="diapyr_join_debat"),
 
