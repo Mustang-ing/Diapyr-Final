@@ -21,7 +21,7 @@ def main():
     total = 0
     real_user = []
     # Count the number of users in the Zulip organization
-    print(client.get_members()["members"][0]["is_bot"])
+    #print(client.get_members()["members"][0]["is_bot"])
     members = client.get_members()["members"]
     for user in members:
         if not bool(user["is_bot"]):

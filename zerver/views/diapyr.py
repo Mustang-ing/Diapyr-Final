@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
 from zerver.models.debat import Debat, Participant
 from datetime import datetime, timedelta
 
@@ -9,7 +11,9 @@ from datetime import datetime, timedelta
 
 
 # Fonctionnalité Diapyr sur la page d'accueil
+@login_required
 @csrf_exempt
+@transaction.atomic(durable=True) # Ensure atomicity for database operations
 def formulaire_debat(request: HttpRequest) -> HttpResponse:
     
     #View to render the debate form page and handle POST requests.
@@ -46,6 +50,7 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
     else:
         return render(request, 'zerver/app/formulaire_debat.html')
 
+@login_required
 def diapyr_home(request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
     print(request.user)
@@ -54,6 +59,8 @@ def diapyr_home(request: HttpRequest) -> HttpResponse:
     return render(request, 'zerver/app/diapyr_home.html', {'debat': debat})
 
 @csrf_exempt
+@login_required
+@transaction.atomic(durable=True)
 def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
     print('La méthode de requête est : ', request.method)
