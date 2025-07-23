@@ -252,7 +252,14 @@ from zerver.views.video_calls import (
 
 from zerver.views.zephyr import webathena_kerberos_login
 from zproject import dev_urls
-from zerver.views.diapyr import diapyr_join_debat,formulaire_debat,diapyr_home
+from zerver.views.diapyr import(
+     diapyr_join_debat,
+     formulaire_debat,
+     diapyr_home,
+)
+from zerver.views.subscribe_debat import(
+    subscribe_user_to_debat,
+)
 
 
 if settings.TWO_FACTOR_AUTHENTICATION_ENABLED:  # nocoverage
@@ -548,6 +555,8 @@ v1_api_and_json_patterns = [
     rest_path("export/realm", POST=export_realm, GET=get_realm_exports),
     rest_path("export/realm/<int:export_id>", DELETE=delete_realm_export),
     rest_path("export/realm/consents", GET=get_users_export_consents),
+    # Diapyr_alt integration
+    rest_path("diapyr/subscribe/debat", POST=subscribe_user_to_debat),
 ]
 
 integrations_view = IntegrationView.as_view()

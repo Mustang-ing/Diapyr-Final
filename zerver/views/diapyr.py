@@ -4,6 +4,8 @@ from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from zerver.decorator import zulip_login_required
+from zerver.models import UserProfile
 from zerver.models.debat import Debat, Participant
 from datetime import datetime, timedelta
 
@@ -11,7 +13,10 @@ from datetime import datetime, timedelta
 
 
 # Fonctionnalité Diapyr sur la page d'accueil
-@login_required
+"""
+Zulip_login_required fonctionne de la même manière que login_required, mais il contrôle que les cookies de session sont valides pour Zulip.
+"""
+@zulip_login_required
 @csrf_exempt
 @transaction.atomic(durable=True) # Ensure atomicity for database operations
 def formulaire_debat(request: HttpRequest) -> HttpResponse:
@@ -50,16 +55,20 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
     else:
         return render(request, 'zerver/app/formulaire_debat.html')
 
-@login_required
-def diapyr_home(request: HttpRequest) -> HttpResponse:
+@zulip_login_required
+def diapyr_home(
+    request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
     print(request.user)
     print(type(request.user))
     print(request.session.items())
+    #print(f"User profile: {user_profile}")
+    #print(f"User ID: {user_id}")
     return render(request, 'zerver/app/diapyr_home.html', {'debat': debat})
 
+
+@zulip_login_required 
 @csrf_exempt
-@login_required
 @transaction.atomic(durable=True)
 def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
@@ -72,6 +81,8 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
         age = request.POST.get('age', '').strip()
         domaine = request.POST.get('domaine', '').strip()
         profession = request.POST.get('profession', '').strip()
+
+
         try:
             debat = Debat.objects.get(debat_id=debat_id)
             participant = Participant.objects.create(
