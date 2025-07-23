@@ -19,9 +19,9 @@ def subscribe_user_to_debat(
     request: HttpRequest,
     user_profile: UserProfile,
     #*, # Uncomment if you want to enforce keyword-only arguments
-    age: int,
-    domaine: str,
-    profession: str
+    age= 23,
+    domaine = "Nothing",
+    profession = "Nothing"
 )-> HttpResponse:
     
     """
@@ -35,9 +35,13 @@ def subscribe_user_to_debat(
 
     if request.method == "POST":
         debat_id = request.POST.get('debat', '').strip()
+        """
+        
         age = request.POST.get('age', '').strip()
         domaine = request.POST.get('domaine', '').strip()
         profession = request.POST.get('profession', '').strip()
+
+        """
 
     try:
         debat = Debat.objects.get(debat_id=int(debat_id))

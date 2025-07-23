@@ -77,7 +77,8 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
 
     if request.method == "POST":
         debat_id = request.POST.get('debat', '').strip()
-        username = request.POST.get('username', '').strip()
+        username = request.user.full_name
+        print(f"Username : {username}")
         age = request.POST.get('age', '').strip()
         domaine = request.POST.get('domaine', '').strip()
         profession = request.POST.get('profession', '').strip()

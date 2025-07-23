@@ -50,15 +50,24 @@ def do_subscribe_user_to_debat(
         debat = Debat.objects.get(debat_id=debat_id)
 
         # We need to check if the user is already a participant on the debate.
-        if debat.debat_participant.filter(participant_id=user_profile.id).exists():
+        print(user_profile)
+        print(type(user_profile))
+
+        User = UserProfile.objects.get(email=user_profile)
+        print(f"User : {User.full_name} | User ID : {User.id} | User Email : {User.email}")
+        if debat.debat_participant.filter(participant_id=User.id).exists():
             raise ValueError("User is already a participant in this debate")
         
         #We also need to check if the time period for subscribing to the debate is still valid.
         #In the old version, a user can subscribe to a debate but are not in a group. We will have to wait the next step in there is one 
         #Also we need to rename the field end_date to something like start_date, because it is the date when the debate starts.
+
+        """
+       
         if debat.end_date < datetime.now():
             raise ValueError("The debate has already start, you cannot subscribe anymore")         
 
+         """
         if debat.is_archived:
             raise ValueError("The debate is closed, you cannot subscribe anymore")                                                                  
 
