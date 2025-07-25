@@ -5,7 +5,6 @@ from django.utils.timezone import now as timezone_now
 from django.views.decorators.csrf import csrf_exempt
 from zerver.decorator import zulip_login_required
 from zerver.lib.response import json_success
-from zerver.lib.typed_endpoint import typed_endpoint
 from zerver.models import UserProfile
 from zerver.models.debat import  Debat, Participant
 from zerver.actions.subscribe_debat import do_subscribe_user_to_debat
@@ -19,10 +18,10 @@ def subscribe_user_to_debat(
     request: HttpRequest,
     user_profile: UserProfile,
     #*, # Uncomment if you want to enforce keyword-only arguments
-    age= 23,
-    domaine = "Nothing",
-    profession = "Nothing"
-)-> HttpResponse:
+    age=None,
+    domaine=None,
+    profession=None
+) -> HttpResponse:
     
     """
     This endpoint is a substitution for the diapyr_join_debat view from diapyr.py, in order to be more RESTful.
@@ -33,28 +32,28 @@ def subscribe_user_to_debat(
     print('La méthode de requête est : ', request.method)
     print('Les données POST sont : ', request.POST) 
 
+    print(user_profile)
+    print(type(user_profile))
+    print(f"User-M1 : {user_profile.full_name} | User-M2 : {user_profile.get_username()} User ID : {user_profile.id} | User Email : {user_profile.email}")
+
     if request.method == "POST":
         debat_id = request.POST.get('debat', '').strip()
-        """
-        
         age = request.POST.get('age', '').strip()
         domaine = request.POST.get('domaine', '').strip()
         profession = request.POST.get('profession', '').strip()
-
-        """
 
     try:
         debat = Debat.objects.get(debat_id=int(debat_id))
         print(f"Debat : {debat.title} | Utilisateur à inscrire - 1 : { user_profile.full_name} | Utilisateur à inscrire - 2 : {user_profile.get_username()}")
         do_subscribe_user_to_debat(
-            user_profile=user_profile.get_username(),
+            user_profile=user_profile,
             debat_id=debat.debat_id,
             username=user_profile.full_name,
             age=age,
             domaine=domaine,
             profession=profession
         )
-        return json_success(request, data={"message": "User {user_profile.full_name} subscribed sucessfully to the debate {debat.title}"})
+        return json_success(request, data={"message": f"User {user_profile.full_name} subscribed sucessfully to the debate {debat.title}"})
     except ValueError as e:
         raise JsonableError(str(e))
     except Debat.DoesNotExist:
