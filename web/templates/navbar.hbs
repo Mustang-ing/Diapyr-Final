@@ -95,6 +95,8 @@
             <ul id="diapyr-dropdown">
                 <li id="open-create-debate-modal">Créer un débat</li>
                 <li id="open-join-debate-modal">Rejoindre un débat</li> 
+                <li id="open-list-debates">Liste des débats</li>
+                <li id="open-my-debates-modal">Mes débats</li>
             </ul>
 
         </div>
@@ -200,9 +202,11 @@ setTimeout(function () {
     const btnCreate = document.querySelector("#open-create-debate-modal");
     const btnJoin = document.querySelector("#open-join-debate-modal");
     const btnClose = document.querySelector("#close-diapyr-modal");
+    const btnList = document.querySelector("#open-list-debates");
+    const btnMyDebates = document.querySelector("#open-my-debates-modal");
 
 
-    if (btnCreate && btnJoin && btnClose) {
+    if (btnCreate && btnJoin && btnClose && btnList && btnMyDebates) {
         btnCreate.addEventListener("click", function () {
             console.log("🟢 Bouton 'Créer un débat' cliqué");
             openDiapyrModal("/diapyr_create_debat/");
@@ -216,6 +220,16 @@ setTimeout(function () {
         btnClose.addEventListener("click", function () {
             document.getElementById("diapyr-modal").style.display = "none";
             document.getElementById("diapyr-modal-content").innerHTML = "";
+        });
+
+        btnList.addEventListener("click",function () {
+            console.log("🟢 Bouton 'Liste des débats' cliqué");
+            window.location.href = "/diapyr_home/";
+        });
+
+        btnMyDebates.addEventListener("click", function () {
+            console.log("🟢 Bouton 'Mes débats' cliqué");
+            openDiapyrModal("/diapyr_my_debates/");
         });
 
         // rend la fonction accessible globalement
