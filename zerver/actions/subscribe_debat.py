@@ -76,6 +76,8 @@ def do_subscribe_user_to_debat(
         # Create a new participant 
         participant = Participant.objects.create(
                 pseudo=username,
+                #user_id = user_profile.id,
+                #user=user_profile,
                 age=age ,
                 domaine=domaine ,
                 profession=profession
