@@ -23,20 +23,8 @@
                 </select>
             </div>
  
-
+            <!--
             <h2>Vos informations personnelles</h2>
-            
-
-            <div class="form-group">
-                <label>Genre:</label>
-                <select id="gender" required>
-                    <option value="">-- Sélectionnez --</option>
-                    <option value="homme">Homme</option>
-                    <option value="femme">Femme</option>
-                    <option value="autre">Autre</option>
-                </select>
-            </div>
-
 
             <div id="criteres-fields" style="margin-top: 20px; border: 1px solid #ccc; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
                 <h3 style="margin-bottom: 15px;">Critères du débat</h3>
@@ -101,13 +89,13 @@
                 </div>
             </div>
 
-
+            -->
 
             <button type="submit" class="btn btn-primary">Rejoindre le debat</button>
         </form>
     </div>
 
-    <h3> Envie de s'inscrire plus vite ?</h3>
+    <h3> Méthode API </h3>
     <div class="container">
         <form id="new_form" method="post" action="/json/diapyr/subscribe/debat">
             <div class="form-group">
@@ -123,108 +111,10 @@
             </div>
  
 
-            <h2>Vos informations personnelles</h2>
-            
-
-            <div class="form-group">
-                <label>Genre:</label>
-                <select id="gender">
-                    <option value="">-- Sélectionnez --</option>
-                    <option value="homme">Homme</option>
-                    <option value="femme">Femme</option>
-                    <option value="autre">Autre</option>
-                </select>
-            </div>
-
-
-            <div id="criteres-fields" style="margin-top: 20px; border: 1px solid #ccc; padding: 15px; border-radius: 8px; background-color: #f9f9f9;">
-                <h3 style="margin-bottom: 15px;">Critères du débat</h3>
-
-                <div class="form-group">
-                    <label for="age">Âge :</label>
-                    <select name="age" id="age" class="form-control">
-                        <option value="">-- Sélectionnez une tranche --</option>
-                        <option value="0-18">0-18 ans</option>
-                        <option value="18-25">18-25 ans</option>
-                        <option value="25-35">25-35 ans</option>
-                        <option value="35-50">35-50 ans</option>
-                        <option value="50+">50 ans et plus</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="domaine">Domaine :</label>
-                    <select name="domaine" id="domaine" class="form-control">
-                        <option value="">-- Sélectionnez --</option>
-                        <option value="informatique">Informatique</option>
-                        <option value="santé">Santé</option>
-                        <option value="éducation">Éducation</option>
-                        <option value="commerce">Commerce</option>
-                        <option value="industrie">Industrie</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="profession">Profession :</label>
-                    <select name="profession" id="profession" class="form-control">
-                        <option value="">-- Sélectionnez --</option>
-                        <option value="étudiant">Étudiant</option>
-                        <option value="ingénieur">Ingénieur</option>
-                        <option value="enseignant">Enseignant</option>
-                        <option value="infirmier">Infirmier / Infirmière</option>
-                        <option value="commerçant">Commerçant</option>
-                        <option value="autre">Autre</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="etudes">Niveau d'études :</label>
-                    <select name="etudes" id="etudes" class="form-control">
-                        <option value="">-- Sélectionnez --</option>
-                        <option value="bac">Bac</option>
-                        <option value="bac+2">Bac+2</option>
-                        <option value="bac+5">Bac+5</option>
-                        <option value="doctorat">Doctorat</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="experience">Expérience en débat :</label>
-                    <select name="experience" id="experience" class="form-control">
-                        <option value="">-- Sélectionnez --</option>
-                        <option value="0">Aucune</option>
-                        <option value="1">1 à 2 débats</option>
-                        <option value="3">3 à 5 débats</option>
-                        <option value="5+">Plus de 5 débats</option>
-                    </select>
-                </div>
-            </div>
             <button type="submit" class="btn btn-primary">Rejoindre le debat</button>
         </form>
     </div>
-    
-<script>
-document.addEventListener("DOMContentLoaded", function () {
-    const selectDebat = document.getElementById("debat-select");
 
-    selectDebat.addEventListener("change", function () {
-        // tu peux afficher les critères demandés en console si tu veux
-        const selected = selectDebat.options[selectDebat.selectedIndex];
-        const criteres = {
-            age: selected.getAttribute("data-age") === "True",
-            domaine: selected.getAttribute("data-domaine") === "True",
-            profession: selected.getAttribute("data-profession") === "True",
-            etudes: selected.getAttribute("data-etudes") === "True",
-            experience: selected.getAttribute("data-experience") === "True"
-        };
-
-        console.log("Critères du débat sélectionné :", criteres);
-        // ici tu ne modifies aucun champ => tout reste toujours remplissable
-    });
-});
-
-
-</script>
 
 
     

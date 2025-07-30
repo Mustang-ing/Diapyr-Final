@@ -1,0 +1,21 @@
+{% extends "zerver/diapyr_base.html" %}
+
+{% block content %}
+<main>
+    <div class="Main-link">
+        <h2> Liste de mes débats</h2><br>
+        <ul class="debate-list">
+            {% if (my_debates|length) == 0 %}
+                <p>Vous n'avez pas encore créé de débat.</p>
+            {% endif %}
+            {% for deb in my_debates %}
+                <li class="debate-item">
+                        <strong>{{ deb.title }} - </strong>
+                        Description: {{ deb.description }}
+                        Date de début: {{ deb.end_date.strftime('%d/%m/%Y %H:%M') }}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</main>
+{% endblock content %}
