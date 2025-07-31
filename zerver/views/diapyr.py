@@ -32,12 +32,13 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
         title = request.POST.get('nom', '').strip()
         description = request.POST.get('description', '').strip()
         end_date_str = request.POST.get('Date_fin', '').strip()
-        creator_email = request.POST.get('email', '').strip()
         max_per_group = int(request.POST.get('nb_max', 0))
         time_between_round = int(request.POST.get('time_step', 0))
-        num_pass = int(request.POST.get('step', 0))
+        num_pass = int(request.POST.get('step', 1))
 
-        if not title or not end_date_str or not creator_email or max_per_group <= 0 or time_between_round <= 0 or num_pass <= 0:
+        if not title or not end_date_str or max_per_group <= 0 or time_between_round <= 0 or num_pass <= 0:
+            print("❌ Formulaire invalide : un ou plusieurs champs sont vides ou incorrects.")
+            print(f"Form data: title={title}, end_date_str={end_date_str}, max_per_group={max_per_group}, time_between_round={time_between_round}, num_pass={num_pass}")
             return HttpResponse("Invalid form data. Please fill out all fields correctly.", status=400)
 
         end_date = datetime.now() + timedelta(minutes=int(end_date_str))
@@ -46,7 +47,7 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
             title=title,
             description=description,
             end_date=end_date,
-            creator_email=creator_email,
+            creator_email=request.user.email,
             max_per_group=max_per_group,
             time_between_round=time_between_round,
             num_pass=num_pass
@@ -56,8 +57,7 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
         return render(request, 'zerver/app/formulaire_debat.html')
 
 @zulip_login_required
-def diapyr_home(
-    request: HttpRequest) -> HttpResponse:
+def diapyr_home(request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
     print(request.user)
     print(type(request.user))
