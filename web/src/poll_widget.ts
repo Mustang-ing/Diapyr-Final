@@ -46,7 +46,7 @@ export function activate({
         is_my_poll,
         question,
         options,
-        comma_separated_names: people.get_full_names_for_poll_option,
+//    comma_separated_names: people.get_full_names_for_poll_option,
         report_error_function: blueslip.warn,
     });
 
