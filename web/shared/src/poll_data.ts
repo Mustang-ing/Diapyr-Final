@@ -7,7 +7,7 @@ export type PollDataConfig = {
     is_my_poll: boolean;
     question: string;
     options: string[];
-    comma_separated_names: (user_ids: number[]) => string;
+//  comma_separated_names: (user_ids: number[]) => string;
     report_error_function: (msg: string, more_info?: Record<string, unknown>) => void;
 };
 
@@ -83,7 +83,7 @@ export class PollData {
     is_my_poll: boolean;
     poll_question: string;
     input_mode: boolean;
-    comma_separated_names: (user_ids: number[]) => string;
+//  comma_separated_names: (user_ids: number[]) => string;
     report_error_function: (error_message: string) => void;
     handle: PollHandle;
 
@@ -93,7 +93,7 @@ export class PollData {
         is_my_poll,
         question,
         options,
-        comma_separated_names,
+    //  comma_separated_names,
         report_error_function,
     }: PollDataConfig) {
         this.message_sender_id = message_sender_id;
@@ -101,7 +101,7 @@ export class PollData {
         this.is_my_poll = is_my_poll;
         this.poll_question = question;
         this.input_mode = is_my_poll; // for now
-        this.comma_separated_names = comma_separated_names;
+    //  this.comma_separated_names = comma_separated_names;
         this.report_error_function = report_error_function;
 
         if (question) {
@@ -273,7 +273,7 @@ export class PollData {
 
             options.push({
                 option: obj.option,
-                names: this.comma_separated_names(voters),
+                names: "", // Placeholder since comma_separated_names is not available
                 count: voters.length,
                 key,
                 current_user_vote,
