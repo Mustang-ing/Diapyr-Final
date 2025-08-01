@@ -39,6 +39,7 @@ def subscribe_participant_to_debat_ia(
 def do_subscribe_user_to_debat(
     user_profile: UserProfile,
     debat_id: int,
+    user_id: int,
     username:str,
     age: int,
     domaine: str,
@@ -61,23 +62,23 @@ def do_subscribe_user_to_debat(
         #In the old version, a user can subscribe to a debate but are not in a group. We will have to wait the next step in there is one 
         #Also we need to rename the field end_date to something like start_date, because it is the date when the debate starts.
 
-        print(f" Date de fin du débat : {debat.end_date} | Date actuelle : {datetime.now()}")
+        print(f" Date de fin du débat : {debat.subscription_end_date} | Date actuelle : {datetime.now()}")
        
-        if debat.end_date < timezone.now(): # We use timezone.now() to get the current time in the correct timezone, because the end_date is in UTC.(Offset aware)
+        if debat.subscription_end_date < timezone.now(): # We use timezone.now() to get the current time in the correct timezone, because the end_date is in UTC.(Offset aware)
             raise ValueError("The debate has already start, you cannot subscribe anymore")         
 
         if debat.is_archived:
             raise ValueError("The debate is closed, you cannot subscribe anymore")    
 
         # We also check if the debate aren't alreadu created or if there another Zulip channel with the same name.
+        #Attention, cette méthode devrait être appelée avant la création du débat, pas quand on inscrit qq.
         if Stream.objects.filter(name=debat.title).exists() and Debat.objects.filter(title=debat.title).exists() :
             raise ValueError("A debate or a channel with the same name already exists in this realm")
                                       
         # Create a new participant 
         participant = Participant.objects.create(
                 pseudo=username,
-                #user_id = user_profile.id,
-                #user=user_profile,
+                user_id=user_id,
                 age=age ,
                 domaine=domaine ,
                 profession=profession

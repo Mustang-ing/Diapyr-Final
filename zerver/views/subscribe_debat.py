@@ -38,6 +38,10 @@ def subscribe_user_to_debat(
 
     if request.method == "POST":
         debat_id = request.POST.get('debat', '').strip()
+        user_id = request.user.id
+        print(f"User ID : {user_id}")
+        username = request.user.full_name
+        print(f"Username : {username}")
         age = request.POST.get('age', '').strip()
         domaine = request.POST.get('domaine', '').strip()
         profession = request.POST.get('profession', '').strip()

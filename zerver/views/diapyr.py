@@ -27,10 +27,12 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
     print('Les données POST sont : ', request.POST) 
     #Enregistrement des champs 
     if request.method == "POST":
-        criteres = request.POST.getlist("criteres[]")
-        print("✅ Critères cochés :", criteres)
+        #criteres = request.POST.getlist("criteres[]")
+        #print("✅ Critères cochés :", criteres)
         title = request.POST.get('nom', '').strip()
         description = request.POST.get('description', '').strip()
+        creator_id = request.user
+        print(type(creator_id))
         end_date_str = request.POST.get('Date_fin', '').strip()
         max_per_group = int(request.POST.get('nb_max', 0))
         time_between_round = int(request.POST.get('time_step', 0))
@@ -46,11 +48,10 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
         Debat.objects.create(
             title=title,
             description=description,
-            end_date=end_date,
-            creator_email=request.user.email,
+            subscription_end_date=end_date,
+            creator_id=creator_id,
             max_per_group=max_per_group,
             time_between_round=time_between_round,
-            num_pass=num_pass
         )
         return redirect(reverse('home'))  # Redirect to diapyr_home after successful form submission
     else:
@@ -77,6 +78,8 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
 
     if request.method == "POST":
         debat_id = request.POST.get('debat', '').strip()
+        user_id = request.user.id
+        print(f"User ID : {user_id}")
         username = request.user.full_name
         print(f"Username : {username}")
         age = request.POST.get('age', '').strip()
@@ -87,6 +90,7 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
         try:
             debat = Debat.objects.get(debat_id=debat_id)
             participant = Participant.objects.create(
+                user_id=user_id,
                 pseudo=username,
                 age=age ,
                 domaine=domaine ,

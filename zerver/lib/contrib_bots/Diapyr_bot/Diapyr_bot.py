@@ -47,11 +47,12 @@ def get_client() -> None:
     return client
 
 class ObjectD:
-    def __init__(self, name: str , creator_email: str , max_per_group: str , end_date: datetime, time_between_steps: timedelta, num_pass: int) -> None:
+    def __init__(self, name: str , creator_id: int , creator_email: str , max_per_group: str , subscription_end_date: datetime, time_between_steps: timedelta, num_pass: int) -> None:
         self.name = name
+        self.creator_id = creator_id
         self.creator_email = creator_email
         self.max_per_group = max_per_group
-        self.end_date = end_date
+        self.subscription_end_date = subscription_end_date
         self.time_between_steps = time_between_steps if isinstance(time_between_steps, timedelta) else timedelta(seconds=int(time_between_steps))
         #Il pourrait être intéressant de ettre un contrôle sur la valeur du time between_step 
         self.num_pass = num_pass
@@ -136,7 +137,7 @@ class ObjectD:
                 
         
         #On vérifie si leurs nombre est assez grand pour etre divisé OU que le nombre de passes choisit est inférieur OU au moins 2 utilisateurs
-        if len(users) <= self.max_per_group or self.step >= self.num_pass or len(users) < 2:
+        if len(users) <= self.max_per_group or len(users) < 2:
             return False
         
         eliminated = random.sample(users,self.max_per_group)
@@ -158,7 +159,7 @@ class ObjectD:
         groups = [users[i:i + self.max_per_group] for i in range(0, len(users), self.max_per_group)]
         for group in groups:
             group.append(self.creator_email)
-        info = f"Nom: {self.name}\nÉtape: {self.step}\nFin inscription: {self.end_date}\nTemps entre étapes: {self.time_between_steps}\nNb à sélectionner: {self.num_pass}\n"
+        info = f"Nom: {self.name}\nÉtape: {self.step}\nFin inscription: {self.subscription_end_date}\nTemps entre étapes: {self.time_between_steps}\n"
         info += f"Nombre de groupes: {len(groups)}\n"
         for idx, group in enumerate(groups):
             info += f"Groupe {idx + 1}: {', '.join(group)}\n"
@@ -310,10 +311,10 @@ def handle_message(msg: dict[str, str]) -> None:
             return
         name = params[1]
         max_per_group = int(params[2])
-        end_date = datetime.now() + timedelta(minutes=int(params[3]))
+        subscription_end_date = datetime.now() + timedelta(minutes=int(params[3]))
         time_between_steps = timedelta(minutes=int(params[4]))
         num_pass = int(params[5])
-        listeDebat[name] = Debat(name, user_email, max_per_group, end_date, time_between_steps, num_pass)
+        listeDebat[name] = Debat(name, user_email, max_per_group, subscription_end_date, time_between_steps, num_pass)
         client.send_message({"type": "private", "to": user_email,
                              "content": f"Débat '{name}' créé avec succès."})
 
@@ -469,7 +470,7 @@ def get_mediane() -> float:
 def check_and_create_channels() -> None:
     #Vérifie si la période d'inscription est terminée et crée les channels si nécessaire.
     for name, obj in listeDebat.items():
-        if datetime.now(timezone.utc) > obj.end_date and not obj.channels_created:
+        if datetime.now(timezone.utc) > obj.subscription_end_date and not obj.channels_created:
             # Créer les channels et répartir les utilisateurs
             groups = obj.split_into_groups()
             if groups == []:
@@ -497,7 +498,7 @@ def create_debat() -> None:
             # Créer le débat ici
             print(f"Création du débat : {debat.title}")
             # Exemple de création d'un débat
-            listeDebat[debat.title] = ObjectD(debat.title, debat.creator_email, debat.max_per_group, debat.end_date, debat.time_between_round, debat.num_pass)
+            listeDebat[debat.title] = ObjectD(debat.title, debat.creator_email, debat.max_per_group, debat.subscription_end_date, debat.time_between_round)
             # Mettre à jour le statut du débat dans la base de données
             debat.debat_created = True
             debat.save()
@@ -513,7 +514,7 @@ def add_user() -> None:
         if debat.debat_created and debat.title in listeDebat and not debat.is_archived:
             obj = listeDebat[debat.title]
             # Vérifie si la période d'inscription est terminée
-            if current_time > obj.end_date:
+            if current_time > obj.subscription_end_date:
                 #-------------------------Partie message au créateur-------------------------------------------
                 email =""#Vide à cause du probleme de compte
                 participant = len(obj.subscribers)
@@ -527,8 +528,7 @@ def add_user() -> None:
                 
                 for user in debat.debat_participant.all():
                     if not user.is_register:
-                        print(f"Ajout de l'utilisateur : {user.pseudo}")
-                        user.email = get_email_by_full_name(user.pseudo)
+                        print(f"Ajout de l'utilisateur : {user.pseudo} avec l'email {user.email}")
                         if user.email is not None:
                             obj.add_subscriber(user.email, {"name": user.pseudo})
                             user.is_register = True
@@ -536,7 +536,7 @@ def add_user() -> None:
                         else:
                             print(f"Utilisateur {user.pseudo} non trouvé dans Zulip.")
             else:
-                print(f"Période d'inscription toujours en cours pour '{debat.title}'. Fin prévue à {obj.end_date}.")
+                print(f"Période d'inscription toujours en cours pour '{debat.title}'. Fin prévue à {obj.subscription_end_date}.")
 
 def main_loop() -> None:
     #Boucle principale du bot.
