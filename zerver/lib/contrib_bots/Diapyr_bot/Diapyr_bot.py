@@ -18,6 +18,7 @@ import time
 import threading
 from zerver.models.debat import Debat,Participant
 import statistics
+from zerver.models import UserProfile
 
 
 # Configuration du bot
@@ -47,7 +48,7 @@ def get_client() -> None:
     return client
 
 class ObjectD:
-    def __init__(self, name: str , creator_id: int , creator_email: str , max_per_group: str , subscription_end_date: datetime, time_between_steps: timedelta, num_pass: int) -> None:
+    def __init__(self, name: str , creator_id: UserProfile , creator_email: str , max_per_group: str , subscription_end_date: datetime, time_between_steps: timedelta) -> None:
         self.name = name
         self.creator_id = creator_id
         self.creator_email = creator_email
@@ -55,7 +56,6 @@ class ObjectD:
         self.subscription_end_date = subscription_end_date
         self.time_between_steps = time_between_steps if isinstance(time_between_steps, timedelta) else timedelta(seconds=int(time_between_steps))
         #Il pourrait être intéressant de ettre un contrôle sur la valeur du time between_step 
-        self.num_pass = num_pass
         self.step = 1
         self.subscribers = {}
         self.channels_created = False
@@ -306,15 +306,14 @@ def handle_message(msg: dict[str, str]) -> None:
             client.send_message({
                 "type": "private",
                 "to": user_email,
-                "content": "Usage : @créer <nom> <max_par_groupe> <minutes_avant_fin> <minutes_entre_étapes> <num_pass>",
+                "content": "Usage : @créer <nom> <max_par_groupe> <minutes_avant_fin> <minutes_entre_étapes>",
             })
             return
         name = params[1]
         max_per_group = int(params[2])
         subscription_end_date = datetime.now() + timedelta(minutes=int(params[3]))
         time_between_steps = timedelta(minutes=int(params[4]))
-        num_pass = int(params[5])
-        listeDebat[name] = Debat(name, user_email, max_per_group, subscription_end_date, time_between_steps, num_pass)
+        listeDebat[name] = Debat(name, user_email, max_per_group, subscription_end_date, time_between_steps)
         client.send_message({"type": "private", "to": user_email,
                              "content": f"Débat '{name}' créé avec succès."})
 
@@ -329,7 +328,6 @@ def handle_message(msg: dict[str, str]) -> None:
                 config_json["max_par_groupe"],
                 datetime.now() + timedelta(minutes=config_json["minutes_avant_fin"]),
                 timedelta(minutes=config_json["minutes_entre_étapes"]),
-                config_json["num_pass"]
             )
             listeDebat[name] = obj
             client.send_message({"type": "private", "to": user_email,
@@ -498,13 +496,12 @@ def create_debat() -> None:
             # Créer le débat ici
             print(f"Création du débat : {debat.title}")
             # Exemple de création d'un débat
-            listeDebat[debat.title] = ObjectD(debat.title, debat.creator_email, debat.max_per_group, debat.subscription_end_date, debat.time_between_round)
+            listeDebat[debat.title] = ObjectD(debat.title, debat.creator_id, debat.creator_email_copilot, debat.max_per_group, debat.subscription_end_date, debat.time_between_round)
             # Mettre à jour le statut du débat dans la base de données
             debat.debat_created = True
             debat.save()
             print(listeDebat)
             print(f"Débat créé : {debat.title}")
-
 
 def add_user() -> None:
     print("Vérification des utilisateurs à ajouter...")

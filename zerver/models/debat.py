@@ -15,7 +15,7 @@ class Participant(models.Model):
 Therefore a single user can have multiple participants in different debates."""
 
     id = models.AutoField(primary_key=True)
-    user_id = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='participants', null=True, blank=True)
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='participants', null=True, blank=True)
     pseudo = models.CharField(max_length=100, null=False, default="")
     age = models.CharField(max_length=20, blank=True, null=True)
     domaine = models.CharField(max_length=100, blank=True, null=True)
@@ -55,7 +55,7 @@ class Debat(models.Model):
 
     debat_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=100,null=False,default="")
-    creator_id = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='created_debates', null=True, blank=True,default=None)
+    creator = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='created_debates', null=True, blank=True,default=None)
     max_per_group = models.IntegerField()
     subscription_end_date = models.DateTimeField()
     start_date = models.DateTimeField(null=True, blank=True)  # Date when the debate starts
@@ -72,7 +72,8 @@ class Debat(models.Model):
     def __str__(self):
         return self.title
     
-    def get_creator_email_copilot(self) -> str | None:
+    @property
+    def creator_email_copilot(self) -> str | None:
         if self.creator_id:
             return self.creator_id.email
         return None
@@ -136,8 +137,8 @@ class Vote(models.Model):
     """
 
     id = models.AutoField(primary_key=True) 
-    group_id = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='vote')
-    voter_id = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='votes_cast')
+    group = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='vote')
+    voter = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='votes_cast')
     voted_participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='votes_received')
     vote_date = models.DateTimeField(auto_now_add=True)
     state = models.CharField(max_length=20, default='pending',null=True,blank=True)  # pending, accepted, rejected

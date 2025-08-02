@@ -32,14 +32,8 @@ def subscribe_user_to_debat(
     print('La méthode de requête est : ', request.method)
     print('Les données POST sont : ', request.POST) 
 
-    print(user_profile)
-    print(type(user_profile))
-    print(f"User-M1 : {user_profile.full_name} | User-M2 : {user_profile.get_username()} User ID : {user_profile.id} | User Email : {user_profile.email}")
-
     if request.method == "POST":
         debat_id = request.POST.get('debat', '').strip()
-        user_id = request.user.id
-        print(f"User ID : {user_id}")
         username = request.user.full_name
         print(f"Username : {username}")
         age = request.POST.get('age', '').strip()
@@ -52,12 +46,12 @@ def subscribe_user_to_debat(
         do_subscribe_user_to_debat(
             user_profile=user_profile,
             debat_id=debat.debat_id,
-            username=user_profile.full_name,
+            username=username,
             age=age,
             domaine=domaine,
             profession=profession
         )
-        return json_success(request, data={"message": f"User {user_profile.full_name} subscribed sucessfully to the debate {debat.title}"})
+        return json_success(request, data={"message": f"User {username} subscribed sucessfully to the debate {debat.title}"})
     except ValueError as e:
         raise JsonableError(str(e))
     except Debat.DoesNotExist:
