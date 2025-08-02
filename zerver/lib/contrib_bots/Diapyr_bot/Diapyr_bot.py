@@ -16,9 +16,11 @@ import random
 from datetime import datetime, timedelta, timezone
 import time
 import threading
-from zerver.models.debat import Debat,Participant
+from zerver.models.debat import Debat,Participant,Group
 import statistics
-from zerver.models import UserProfile
+from zerver.models import (
+    UserProfile,
+)    
 
 
 # Configuration du bot
@@ -48,16 +50,16 @@ def get_client() -> None:
     return client
 
 class ObjectD:
-    def __init__(self, name: str , creator_id: UserProfile , creator_email: str , max_per_group: str , subscription_end_date: datetime, time_between_steps: timedelta) -> None:
+    def __init__(self, name: str , creator: UserProfile , creator_email: str , max_per_group: str , subscription_end_date: datetime, time_between_steps: timedelta) -> None:
         self.name = name
-        self.creator_id = creator_id
+        self.creator = creator
         self.creator_email = creator_email
         self.max_per_group = max_per_group
         self.subscription_end_date = subscription_end_date
         self.time_between_steps = time_between_steps if isinstance(time_between_steps, timedelta) else timedelta(seconds=int(time_between_steps))
         #Il pourrait être intéressant de ettre un contrôle sur la valeur du time between_step 
         self.step = 1
-        self.subscribers = {}
+        self.subscribers = {} #{"user_email": {"name": "User Name"}}
         self.channels_created = False
         print(f"Création d'un objet débat : {name}")
 
@@ -110,7 +112,7 @@ class ObjectD:
         print("Ajout des utilisateurs dans les streams existants...")
         streams = []
         for i, group in enumerate(groups):
-            stream_name = self.name + self.step * "I" + f"{i+1}" #Changer le nom pour plus de clarté
+            stream_name = self.name + f"P{self.step} - Groupe {i+1}" #Changer le nom pour plus de clarté
             print(f"Tentative d'ajout dans le stream : {stream_name}")
             if add_users_to_stream(stream_name, group):
                 notify_users(stream_name, group)
@@ -126,7 +128,7 @@ class ObjectD:
         
         num_groups = len(users) //  self.max_per_group 
         for i in range(num_groups):  #On récupere le nombre de groupe de l'étape acutel afin d'avoir leurs stream 
-            stream_name = f"{self.name}{'I'*self.step}{i+1}" #On prend leurs noms 
+            stream_name = self.name + f"P{self.step} - Groupe {i+1}"  #On prend leurs noms 
             try:
                 stream_id = client.get_stream_id(stream_name)["stream_id"]
                 client.delete_stream(stream_id)
@@ -468,7 +470,7 @@ def get_mediane() -> float:
 def check_and_create_channels() -> None:
     #Vérifie si la période d'inscription est terminée et crée les channels si nécessaire.
     for name, obj in listeDebat.items():
-        if datetime.now(timezone.utc) > obj.subscription_end_date and not obj.channels_created:
+        if datetime.now(timezone.utc) > obj.subscription_end_date and not obj.channels_created: # On devrait utiliser le step ou le statut du débat pour savoir si on a déjà créé les channels.
             # Créer les channels et répartir les utilisateurs
             groups = obj.split_into_groups()
             if groups == []:
@@ -489,6 +491,7 @@ def message_listener() -> None:
     }
     get_client().call_on_each_message(handle_message)
 
+#A suppr dans le futur, car on devrait se suffir de la BDD.
 def create_debat() -> None:
     print("Vérification des débats à créer...")
     for debat in Debat.objects.all():
@@ -496,7 +499,7 @@ def create_debat() -> None:
             # Créer le débat ici
             print(f"Création du débat : {debat.title}")
             # Exemple de création d'un débat
-            listeDebat[debat.title] = ObjectD(debat.title, debat.creator_id, debat.creator_email_copilot, debat.max_per_group, debat.subscription_end_date, debat.time_between_round)
+            listeDebat[debat.title] = ObjectD(debat.title, debat.creator, debat.creator.email, debat.max_per_group, debat.subscription_end_date, debat.time_between_round)
             # Mettre à jour le statut du débat dans la base de données
             debat.debat_created = True
             debat.save()
@@ -507,11 +510,12 @@ def add_user() -> None:
     print("Vérification des utilisateurs à ajouter...")
     current_time = datetime.now(timezone.utc)
     for debat in Debat.objects.all():
-        print(f"Vérification pour le débat : {debat.title}")
         if debat.debat_created and debat.title in listeDebat and not debat.is_archived:
+            print("Vérification des utilisateurs à ajouter au débat : ", debat.title )
             obj = listeDebat[debat.title]
             # Vérifie si la période d'inscription est terminée
-            if current_time > obj.subscription_end_date:
+            #Dans la V 0.9, on ne vérifie pas la prériode d'inscription (Géré coté frontend), on devra checker la date de début du débat
+            if current_time > obj.subscription_end_date: # Pq vérifier après avoir charger obj ? Possibilité de fusionner cette condition avec la précédente ?
                 #-------------------------Partie message au créateur-------------------------------------------
                 email =""#Vide à cause du probleme de compte
                 participant = len(obj.subscribers)
