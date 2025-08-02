@@ -102,6 +102,40 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
 
     else:
         return render(request, 'zerver/app/diapyr_join_debat.html', {'debat': debat})
+    
 
+@zulip_login_required
+@transaction.atomic(durable=True)
+def show_debates(request: HttpRequest) -> HttpRequest:
+
+    my_debates = Debat.objects.filter(creator=request.user) #Ou encore creator_id=request.user.id
+    #1 - Récupérer tous les participant_id associé à l'user
+    #2 - Dans la table jointes, récupérer les débat associé à ces participant_id
+    #Easiest way is to use the ManyToMany relationship in Django.
+    joined_debates = []
+    for p in Participant.objects.filter(user=request.user):
+        debat = Debat.objects.filter(debat_participant=p)
+        joined_debates.extend(debat)  # Add debates to the list
+        print(debat)
+
+    #Python way 
+    #joined_debates = [Debat.objects.filter(debat_participant=p) for p in Participant.objects.filter(user=request.user)]
+
+    active_debates = [ debat for debat in joined_debates if not debat.is_archived ]
+    print(f"Active debates: {active_debates}")
+    return render(request, 'zerver/app/diapyr_my_debates.html', {
+        'my_debates': my_debates,
+        'joined_debates': joined_debates,
+        'active_debates': active_debates,
+    })
+
+
+
+
+
+
+    
+
+    
 
 

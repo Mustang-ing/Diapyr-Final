@@ -472,6 +472,8 @@ def check_and_create_channels() -> None:
     for name, obj in listeDebat.items():
         if datetime.now(timezone.utc) > obj.subscription_end_date and not obj.channels_created: # On devrait utiliser le step ou le statut du débat pour savoir si on a déjà créé les channels.
             # Créer les channels et répartir les utilisateurs
+            Debat.objects.get(title=name).update_step1()  # On passe à l'étape 2
+            #Içi on rajoute la condition pour vérifier la date de début du débat
             groups = obj.split_into_groups()
             if groups == []:
                 print(f"Création de débat imposible pour l'objet D '{name}'. Il n'a pas de participants ou le nombre maximal de participants par groupe est 0.")

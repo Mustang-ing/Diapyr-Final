@@ -256,6 +256,7 @@ from zerver.views.diapyr import(
      diapyr_join_debat,
      formulaire_debat,
      diapyr_home,
+     show_debates,
 )
 from zerver.views.subscribe_debat import(
     subscribe_user_to_debat,
@@ -676,6 +677,7 @@ i18n_urls = [
     path("diapyr_create_debat/",formulaire_debat,name="diapyr_debat_form"),
     path("diapyr_home/",diapyr_home,name="diapyr_home"),
     path("diapyr_join_debat/",diapyr_join_debat,name="diapyr_join_debat"),
+    path("diapyr_my_debates/",show_debates,name="diapyr_my_debates"),
 
    
     #path("formulaire/", formulaire_debat_view, name="formulaire"),

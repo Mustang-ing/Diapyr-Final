@@ -12,7 +12,23 @@
                 <li class="debate-item">
                         <strong>{{ deb.title }} - </strong>
                         Description: {{ deb.description }}
-                        Date de début: {{ deb.end_date.strftime('%d/%m/%Y %H:%M') }}
+                        Date de fin d'inscription : {{ deb.subscription_end_date.strftime('%d/%m/%Y %H:%M') }}
+                        
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="Main-link">
+        <h2> Liste des débats auxquels vous participez</h2><br>
+        <ul class="debate-list">
+            {% if (joined_debates|length) == 0 %}
+                <p>Vous ne participez à aucun débat.</p>
+            {% endif %}
+            {% for deb in joined_debates %}
+                <li class="debate-item">
+                        <strong>{{ deb.title }} - </strong>
+                        Description: {{ deb.description }}
+                        Date de fin d'inscription : {{ deb.subscription_end_date.strftime('%d/%m/%Y %H:%M') }}
                 </li>
             {% endfor %}
         </ul>

@@ -92,6 +92,13 @@ class Debat(models.Model):
         """Return a list of participants in the debate."""
         return self.debat_participant.all()
     
+    def update_step1(self):
+        """Increment the step of the debate."""
+        if self.step == 1:
+            if self.subscription_end_date < timezone.now():
+                self.step = 2
+                self.save()
+    
     
 
 def check_subscription_end_date(debat: Debat) -> bool:
