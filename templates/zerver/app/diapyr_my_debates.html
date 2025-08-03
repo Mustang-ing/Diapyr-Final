@@ -1,3 +1,8 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<link rel="stylesheet" href="{{ static('styles/interface_user.css') }}">
+</head>
 {% extends "zerver/diapyr_base.html" %}
 
 {% block content %}
@@ -13,6 +18,15 @@
                         <strong>{{ deb.title }} - </strong>
                         Description: {{ deb.description }}
                         Date de fin d'inscription : {{ deb.subscription_end_date.strftime('%d/%m/%Y %H:%M') }}
+                        <div class="debate-actions">
+                            {% if deb.step == 1 %}
+                                <span class="status">En attente de participants</span>
+                            {% elif deb.step == 2 %}
+                                <button class="status-modify"><a class="link-debate" href={{ url( 'debat_manage_next_phase', deb.id )}}>  Choisissez vos paramètres </a></button>
+                            {% elif deb.step == 3 %}
+                                <span class="status">Débat en cours</span>
+                            {% endif %}
+                        </div>
                         
                 </li>
             {% endfor %}

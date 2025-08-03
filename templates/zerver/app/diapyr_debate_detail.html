@@ -1,0 +1,25 @@
+{% extends "zerver/diapyr_base.html" %}
+
+{% block content %}
+<main>
+    <h2>Détails du débat : {{ debat.title }}</h2>
+    <p>Description : {{ debat.description }}</p>
+    <p>Date de fin d'inscription : {{ debat.subscription_end_date.strftime('%d/%m/%Y %H:%M') }}</p>
+
+    <h3>Participants :</h3>
+    <ul>
+        {% for participant in participants %}
+            <li>{{ participant.pseudo }} - {{ participant.age }} ans - {{ participant.domaine }} - {{ participant.profession }}</li>
+        {% empty %}
+            <li>Aucun participant pour ce débat.</li>
+        {% endfor %}
+    </ul>
+</main>
+
+{% if user.is_authenticated %}
+    <div class="Main-link">
+        <a href="{% url 'diapyr_my_debates' %}">Retour à la liste de mes débats</a>
+    </div>
+{% endif %}
+
+{% endblock content %}

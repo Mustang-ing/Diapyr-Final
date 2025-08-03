@@ -51,6 +51,7 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
             creator=creator,
             max_per_group=max_per_group,
             time_between_round=time_between_round,
+            start_date=end_date + timedelta(minutes=30),  # Set start date 30 minutes after end date
         )
         return redirect(reverse('home'))  # Redirect to diapyr_home after successful form submission
     else:
@@ -127,6 +128,23 @@ def show_debates(request: HttpRequest) -> HttpRequest:
         'my_debates': my_debates,
         'joined_debates': joined_debates,
         'active_debates': active_debates,
+    })
+
+
+@zulip_login_required
+@transaction.atomic(durable=True)
+def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
+    try:
+        debat = Debat.objects.get(debat_id=debat_id)
+    except Debat.DoesNotExist:
+        return HttpResponse("Debate not found.", status=404)
+
+    # Get participants in the debate
+    participants = debat.get_participants()
+
+    return render(request, 'zerver/app/diapyr_debate_detail.html', {
+        'debat': debat,
+        'participants': participants,
     })
 
 

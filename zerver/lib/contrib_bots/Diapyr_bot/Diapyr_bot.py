@@ -470,18 +470,21 @@ def get_mediane() -> float:
 def check_and_create_channels() -> None:
     #Vérifie si la période d'inscription est terminée et crée les channels si nécessaire.
     for name, obj in listeDebat.items():
+        debat_obj = Debat.objects.filter(title=name)
         if datetime.now(timezone.utc) > obj.subscription_end_date and not obj.channels_created: # On devrait utiliser le step ou le statut du débat pour savoir si on a déjà créé les channels.
             # Créer les channels et répartir les utilisateurs
-            Debat.objects.get(title=name).update_step1()  # On passe à l'étape 2
+            debat_obj.update(step=2)
             #Içi on rajoute la condition pour vérifier la date de début du débat
-            groups = obj.split_into_groups()
-            if groups == []:
-                print(f"Création de débat imposible pour l'objet D '{name}'. Il n'a pas de participants ou le nombre maximal de participants par groupe est 0.")
-                break
-            obj.create_streams_for_groups(groups)
-            obj.channels_created = True  # Marquer que les channels ont été créés
-            print(f"Channels créés pour l'objet D '{name}'.")
-            obj.start_debate_process()  # Démarrer le processus de débat
+            if debat_obj.start_date is None or debat_obj.start_date < datetime.now(timezone.utc):
+                groups = obj.split_into_groups()
+                if groups == []:
+                    print(f"Création de débat imposible pour l'objet D '{name}'. Il n'a pas de participants ou le nombre maximal de participants par groupe est 0.")
+                    break
+                obj.create_streams_for_groups(groups)
+                obj.channels_created = True  # Marquer que les channels ont été créés
+                print(f"Channels créés pour l'objet D '{name}'.")
+                obj.start_debate_process()  # Démarrer le processus de débat
+            
 
 def message_listener() -> None:
     #Fonction pour écouter les messages entrants.

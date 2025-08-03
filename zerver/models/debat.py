@@ -1,3 +1,4 @@
+from datetime import date, timedelta
 from django.db import models
 from django.utils import timezone
 from django.contrib.postgres.fields import ArrayField  
@@ -57,7 +58,7 @@ class Debat(models.Model):
     creator = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='created_debates', null=True, blank=True,default=None)
     max_per_group = models.IntegerField()
     subscription_end_date = models.DateTimeField()
-    start_date = models.DateTimeField(null=True, blank=True)  # Date when the debate starts
+    start_date = models.DateTimeField(null=True, blank=True, default=None)  # Date when the debate starts
     time_between_round = models.IntegerField()
     """There are many steps in a debate, and each step has a function in the process.
         Step 1: Phase of subscription, where users can subscribe to the debate.
@@ -91,13 +92,6 @@ class Debat(models.Model):
     def get_participants(self):
         """Return a list of participants in the debate."""
         return self.debat_participant.all()
-    
-    def update_step1(self):
-        """Increment the step of the debate."""
-        if self.step == 1:
-            if self.subscription_end_date < timezone.now():
-                self.step = 2
-                self.save()
     
     
 
