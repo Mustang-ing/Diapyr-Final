@@ -475,11 +475,12 @@ def check_and_create_channels() -> None:
             # Créer les channels et répartir les utilisateurs
             debat_obj.update(step=2)
             #Içi on rajoute la condition pour vérifier la date de début du débat
-            if debat_obj.start_date is None or debat_obj.start_date < datetime.now(timezone.utc):
-                groups = obj.split_into_groups()
-                if groups == []:
-                    print(f"Création de débat imposible pour l'objet D '{name}'. Il n'a pas de participants ou le nombre maximal de participants par groupe est 0.")
-                    break
+            if hasattr(debat_obj, 'start_date'):
+                if debat_obj.start_date is None or debat_obj.start_date < datetime.now(timezone.utc):
+                    groups = obj.split_into_groups()
+                    if groups == []:
+                        print(f"Création de débat imposible pour l'objet D '{name}'. Il n'a pas de participants ou le nombre maximal de participants par groupe est 0.")
+                        break
                 obj.create_streams_for_groups(groups)
                 obj.channels_created = True  # Marquer que les channels ont été créés
                 print(f"Channels créés pour l'objet D '{name}'.")

@@ -22,7 +22,7 @@
                             {% if deb.step == 1 %}
                                 <span class="status">En attente de participants</span>
                             {% elif deb.step == 2 %}
-                                <button class="status-modify"><a class="link-debate" href={{ url( 'debat_manage_next_phase', deb.id )}}>  Choisissez vos paramètres </a></button>
+                                <button class="status-modify"><a class="link-debate" href="/diapyr_my_debates/{{ deb.debat_id }}/">Choisissez vos paramètres </a></button>
                             {% elif deb.step == 3 %}
                                 <span class="status">Débat en cours</span>
                             {% endif %}

@@ -28,6 +28,7 @@ def main():
         if not bool(user["is_bot"]):
             total += 1
             real_user.append(user)
+            
 
     
     print(f"Nombre total d'utilisateurs dans l'organisation : {total}")
@@ -45,7 +46,6 @@ def main():
     debat = Debat.objects.create(
         title=f"TestDebate {num}",
         creator=UserProfile.objects.get(id=11),  # Assuming the creator is the first user
-        creator_email=UserProfile.objects.get(id=11).email,
         max_per_group=max_per_group,
         subscription_end_date=datetime.now() + timedelta(seconds=5),
         time_between_round=time_between_steps,
