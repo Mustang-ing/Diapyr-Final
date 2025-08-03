@@ -11,6 +11,7 @@ django.setup()
 import zulip
 from datetime import datetime, timedelta
 from zerver.models.debat import Debat,Participant
+from zerver.models import UserProfile
 #from zerver.lib.actions import do_delete_stream
 import time
 
@@ -43,11 +44,12 @@ def main():
     num = Debat.objects.count() 
     debat = Debat.objects.create(
         title=f"TestDebate {num}",
-        creator_email="",
+        creator=UserProfile.objects.get(id=11),  # Assuming the creator is the first user
+        creator_email=UserProfile.objects.get(id=11).email,
         max_per_group=max_per_group,
-        end_date = datetime.now() + timedelta(seconds=10),
+        subscription_end_date=datetime.now() + timedelta(seconds=5),
         time_between_round=time_between_steps,
-        num_pass=3,
+        start_date=datetime.now() + timedelta(minutes=30),
         description="This is a test debate")
     print(f"Débat créé : {debat.title}")
 
@@ -56,7 +58,7 @@ def main():
     
     for i,user in zip(range(nb_subscribers),real_user):
         participant = Participant.objects.create(
-            email=user['email'],
+            user=UserProfile.objects.get(id=user['user_id']),
             pseudo=f"{user['full_name']}",
         )
         debat.debat_participant.add(participant)
