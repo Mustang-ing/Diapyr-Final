@@ -3,47 +3,51 @@
 {% block content %}
 
 
-<h2 class="debat-detail-title"> {{ debat.title }}</h2>
+<h1 class="debat-detail-title"> {{ debat.title }}</h2>
 
 <div class="debat-detail-main">
     <div class="debat-detail-options">
         <button type="button" class="btn btn-primary">Informations du débat</button>
         <button type="button" class="btn btn-secondary">Participants</button>
         <button type="button" class="btn btn-third">Choisir les paramètres de la phase 2</button>
-    </div>
+</div>
 
-    <div class="debat-detail-info">
-        <p>Description : {{ debat.description }}</p>
-        <p>Date de fin d'inscription : {{ debat.subscription_end_date.strftime('%d/%m/%Y %H:%M') }}</p>
-
-        <h3 class="participant-title">Participants :</h3>
-        <table class="participant-list">
-            <thead>
-                <tr>
-                    <th>Nom</th>
-                    <th>Représentant</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for participant in participants %}
+    <div class="debat-detail-output">
+        <div class="debat-detail-info">
+            <h2>Informations du débat</h2>
+            <p>Description : {{ debat.description }}</p>
+            <p>Date de fin d'inscription : {{ debat.subscription_end_date.strftime('%d/%m/%Y %H:%M') }}</p>
+            <p>Date de début du débat : {{ debat.start_date.strftime('%d/%m/%Y %H:%M') }}</p>
+        </div>
+        <div class="debat-detail-participants">   
+            <h2 class="participant-title">Participants :</h2>
+            <table class="participant-list">
+                <thead>
                     <tr>
-                        <td>{{ participant.pseudo }}</td>
-                        <td>
-                            {% if participant.is_representative %}
-                                Oui
-                            {% else %}
-                                Non
-                            {% endif %}
-                        </td>
+                        <th>Nom</th>
+                        <th>Représentant</th>
                     </tr>
-                {% else %}
-                    <tr>
-                        <td colspan="2">Aucun participant pour ce débat.</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
+                </thead>
+                <tbody>
+                    {% for participant in participants %}
+                        <tr>
+                            <td>{{ participant.pseudo }}</td>
+                            <td>
+                                {% if participant.is_representative %}
+                                    Oui
+                                {% else %}
+                                    Non
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="2">Aucun participant pour ce débat.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 {% if request.user.is_authenticated %}

@@ -75,6 +75,12 @@ ul {
     border-radius: 8px;
 }
 
+.debat-detail-title {
+    text-align: left;
+    margin-top: 20px;
+    margin-left: 20px;
+}
+
 .debat-detail-main {
     display: flex;
     flex-direction: row;
@@ -93,33 +99,37 @@ ul {
 }
 
 .debat-detail-options button {
-    width: 200px;
+    width: 400px;
     height: 50px;
-    margin: 10px;
-    padding: 0;
-    font-size: 0.8em;
+    padding: 10px;
+    font-size: 1em;
     box-sizing: content-box;
     border: 2px solid #0066cc;
     border-radius: 5px;
     background-color: #0066cc;
+    text-align: left;
     color: white;
     cursor: pointer;
     transition: background 0.3s ease;
 }
 
-
-.debat-detail-title {
-    text-align: left;
-    margin-top: 20px;
-    margin-left: 20px;
+.debat-detail-info {
+    display: block;
 }
+
+.debat-detail-participants {
+    display: none
+
+}
+
 .participant-title {
     margin-top: 10px;
 }
 
-.debat-detail-info {
+.debat-detail-output {
     flex: 2;
     margin-left: 20px;  
+    margin-right: 70px;
     margin-top: 20px;
     padding: 20px;
     background-color: #fff;
@@ -137,6 +147,7 @@ ul {
 width: 100%;
 border-collapse: collapse;
 margin-top: 10px;
+
 }
 
 .participant-list th,
