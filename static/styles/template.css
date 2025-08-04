@@ -58,6 +58,7 @@ ul {
     justify-content: space-around;
 }
 
+
 .debate-list {
     display: flex;
     flex-direction: column;
@@ -74,19 +75,91 @@ ul {
     border-radius: 8px;
 }
 
-.participant-list {
+.debat-detail-main {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    margin: 20px;
+    align-content: flex-start;
+    justify-content: space-between;
+}
+
+.debat-detail-options {
+    flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 10px;
     margin-top: 20px;
 }
 
-.participant-list li {
-    list-style-type: none;
-    border: 1px solid #0066cc;
-    background-color: #f9f9f9;
-    padding: 10px;
+.debat-detail-options button {
+    width: 200px;
+    height: 50px;
+    margin: 10px;
+    padding: 0;
+    font-size: 0.8em;
+    box-sizing: content-box;
+    border: 2px solid #0066cc;
+    border-radius: 5px;
+    background-color: #0066cc;
+    color: white;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+
+.debat-detail-title {
+    text-align: left;
+    margin-top: 20px;
+    margin-left: 20px;
+}
+.participant-title {
+    margin-top: 10px;
+}
+
+.debat-detail-info {
+    flex: 2;
+    margin-left: 20px;  
+    margin-top: 20px;
+    padding: 20px;
+    background-color: #fff;
     border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.participant-list {
+    margin-top: 20px;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.participant-list  {
+width: 100%;
+border-collapse: collapse;
+margin-top: 10px;
+}
+
+.participant-list th,
+.participant-list td {
+    border: 1px solid #0066cc;
+    padding: 12px 8px;
+    text-align: center;
+    background-color: #e6f2ff;
+    font-size: 1em;
+}
+
+.participant-list th {
+    background-color: #0066cc;
+    color: white;
+    font-weight: 600;
+}
+
+.participant-list tr:nth-child(even) td {
+    background-color: #d9eaff;
+}
+
+.participant-list tr:hover td {
+    background-color: #b3d7ff;
 }
 
 h1 {

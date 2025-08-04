@@ -2,21 +2,50 @@
         
 {% block content %}
 
-<div class="Main-link">
-    <h2>Détails du débat : {{ debat.title }}</h2>
-    <p>Description : {{ debat.description }}</p>
-    <p>Date de fin d'inscription : {{ debat.subscription_end_date.strftime('%d/%m/%Y %H:%M') }}</p>
 
-    <h3>Participants :</h3>
-    <ul class="participant-list">
-        {% for participant in participants %}
-            <li>{{ participant.pseudo }} - {{ participant.is_register }}</li>
-        {% else %}
-            <li>Aucun participant pour ce débat.</li>
-        {% endfor %}
-    </ul>
-  
+<h2 class="debat-detail-title"> {{ debat.title }}</h2>
 
+<div class="debat-detail-main">
+    <div class="debat-detail-options">
+        <button type="button" class="btn btn-primary">Informations du débat</button>
+        <button type="button" class="btn btn-secondary">Participants</button>
+        <button type="button" class="btn btn-third">Choisir les paramètres de la phase 2</button>
+    </div>
+
+    <div class="debat-detail-info">
+        <p>Description : {{ debat.description }}</p>
+        <p>Date de fin d'inscription : {{ debat.subscription_end_date.strftime('%d/%m/%Y %H:%M') }}</p>
+
+        <h3 class="participant-title">Participants :</h3>
+        <table class="participant-list">
+            <thead>
+                <tr>
+                    <th>Nom</th>
+                    <th>Représentant</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for participant in participants %}
+                    <tr>
+                        <td>{{ participant.pseudo }}</td>
+                        <td>
+                            {% if participant.is_representative %}
+                                Oui
+                            {% else %}
+                                Non
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <td colspan="2">Aucun participant pour ce débat.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+    </div>
+</div>
 {% if request.user.is_authenticated %}
     <div class="Main-link">
         <a href="{{ url('diapyr_my_debates') }}">Retour à la liste de mes débats</a>
