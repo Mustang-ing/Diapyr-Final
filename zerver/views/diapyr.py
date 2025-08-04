@@ -136,15 +136,19 @@ def show_debates(request: HttpRequest) -> HttpRequest:
 def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
     try:
         debat = Debat.objects.get(debat_id=debat_id)
+        
     except Debat.DoesNotExist:
         return HttpResponse("Debate not found.", status=404)
 
-    # Get participants in the debate
-    participants = debat.get_participants()
+    if debat.creator.id != request.user.id:
+        return HttpResponse("Vous n'êtes pas l'organisateur du débat",status=403)
+    else:
+        # Get participants in the debate
+        participants = debat.get_participants()
 
-    return render(request, 'zerver/app/diapyr_debate_detail.html', {
-        'debat': debat,
-        'participants': participants,
+        return render(request, 'zerver/app/diapyr_debate_detail.html', {
+            'debat': debat,
+            'participants': participants,
     })
 
 
