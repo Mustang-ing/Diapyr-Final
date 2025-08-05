@@ -1,10 +1,11 @@
 from django.shortcuts import render, redirect
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from zerver.decorator import zulip_login_required
+from zerver.lib.split_into_groups import phase2_preparation
 from zerver.models import UserProfile
 from zerver.models.debat import Debat, Participant
 from datetime import datetime, timedelta
@@ -136,18 +137,51 @@ def show_debates(request: HttpRequest) -> HttpRequest:
 def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
     try:
         debat = Debat.objects.get(debat_id=debat_id)
+        # Get participants in the debate
+        participants = debat.get_participants()
+        nb_participants = participants.count()
+        print(f"Nombre de participants : {nb_participants}")
         
     except Debat.DoesNotExist:
         return HttpResponse("Debate not found.", status=404)
 
     if debat.creator.id != request.user.id:
         return HttpResponse("Vous n'êtes pas l'organisateur du débat",status=403)
-    else:
-        # Get participants in the debate
-        participants = debat.get_participants()
-        nb_participants = participants.count()
-        print(f"Nombre de participants : {nb_participants}")
+    
+    if request.method == "POST":
+        print('La méthode de requête est : ', request.method)
+        print('Les données POST sont : ', request.POST) 
 
+        start_date = request.POST.get('start_date', '').strip()
+        max_per_group = int(request.POST.get('max_per_group', 0))
+        time_between_round = int(request.POST.get('time_between_round', 0))
+        max_representant = int(request.POST.get('nb_rep_per_grp', 0))
+
+        try:
+            # La on doit appeler la méthode pour calculer les paramètres du débat
+            result = phase2_preparation(
+                debat=debat,
+                max_per_group=max_per_group,
+                time_between_round=time_between_round,
+                max_representant=max_representant
+            )
+
+            if result["num_rounds"] == 0:
+                return HttpResponse("Only one group created, check the number of participants and max_per_group", status=400)
+            
+            print("Phase 2 preparation result:", result)
+            
+
+            return render(request,'zerver/app/diapyr_debate_detail.html', {
+                    'debat': debat,
+                    'result': result,
+                    'message': f"Debate {debat.title} updated successfully"
+                })
+        except ValueError as e:
+            return HttpResponseBadRequest(str(e))
+        except Debat.DoesNotExist:
+            return HttpResponse("Debate not found.", status=404)
+    else:
         return render(request, 'zerver/app/diapyr_debate_detail.html', {
             'debat': debat,
             'participants': participants,

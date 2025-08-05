@@ -59,25 +59,33 @@
                 <p> Attention, si aucune action de votre part n'est effectuée, le débat démarera 30 minutes après la phase d'inscription</p>
             </div>
             <p>Vous pouvez choisir les paramètres suivants :</p>
+            <!-- Dans l'ideal, il faudrait envoyer le formulaire a action="diapyr/debat/update/phase2/{{ debat.id }}" -->
             <form id="params-form" method="post" action="">
                 {{ csrf_input }}
                 <label for="param1">Date de début du débat :</label>
-                <input type="text" id="param1" name="param1" required>
+                <input type="date" id="param1" name="start_date" required>
                 <label for="param2">Nombre de personne par groupe:</label>
-                <input type="text" id="param2" name="param2" required>
+                <input type="number" id="param2" name="max_per_group" required>
                 <label for="param3">Nombre de représentant par groupe:</label>
-                <input type="text" id="param3" name="param3" required>
+                <input type="number" id="param3" name="nb_rep_per_grp" required>
                 <label for="param4">Temps par tour (en minutes):</label>
-                <input type="text" id="param4" name="param4" required>
+                <input type="number" id="param4" name="time_between_round" required>
                 <button type="submit">Enregistrer les paramètres</button>
             </form>
             <h3> Informations de la phase 2</h3>
             <div class="debat-info-list">
                 <ul class="debat-info-list">
                     <li>Nombre de participants inscrit: <strong>{{ nb_participants }}</strong></li>
-                    <li>Nombre de groupe : {# debat.groups_count #}</li>
-                    <li>Nombre de tours : {# debat.rounds #}</li>
-                    <li> Estimation de la date de fin du débat : {# debat.estimated_end_date.strftime('%d/%m/%Y %H:%M') #}</li>
+                    <li>Nombre de groupe : </li>
+                    <li>Nombre de tours : </li>
+                    <li>Durée du débat en minutes : </li>
+                    {% if result %}
+                        <li>Nombre de participants inscrit: <strong>{{ nb_participants }}</strong></li>
+                        <li>Nombre de groupe : {{ result["nb_groups"] }}</li>
+                        <li>Nombre de tours : {{ result["num_rounds"] }}</li>
+                        <li>Durée du débat en minutes : {{ result["estimated_duration"] }}</li>
+                    {% endif %}
+                    <!-- Trouver un moyen pour afficher la répartition des utilisateurs-->
                 </ul>
             </div>
         </div>

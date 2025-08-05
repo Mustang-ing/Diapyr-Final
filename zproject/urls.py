@@ -263,6 +263,11 @@ from zerver.views.subscribe_debat import(
     subscribe_user_to_debat,
 )
 
+from zerver.views.diapyr_update_debat_phase2 import (
+    diapyr_update_debat_phase2,
+)
+
+
 
 if settings.TWO_FACTOR_AUTHENTICATION_ENABLED:  # nocoverage
     from two_factor.gateways.twilio.urls import urlpatterns as tf_twilio_urls
@@ -559,6 +564,7 @@ v1_api_and_json_patterns = [
     rest_path("export/realm/consents", GET=get_users_export_consents),
     # Diapyr_alt integration
     rest_path("diapyr/subscribe/debat", POST=subscribe_user_to_debat),
+    rest_path("diapyr/debat/update/phase2/<int:debat_id>/", POST=diapyr_update_debat_phase2),
 ]
 
 integrations_view = IntegrationView.as_view()
