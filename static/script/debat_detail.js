@@ -1,6 +1,12 @@
 // eslint-disable-next-line import/unambiguous
 'use strict';
 
+
+/* This script handles the dynamic display of debate details based on button clicks.
+   It hides all sections initially and only displays the section corresponding to the clicked button.
+    The buttons are expected to be in the class "btn" and the sections in the class
+*/
+
 window.addEventListener("DOMContentLoaded", () => 
 {
     // eslint-disable-next-line no-undef

@@ -105,3 +105,9 @@ margin-top: 10px;
     margin-bottom: 10px;
     font-weight: bold;
 }
+
+.debat-info-list{
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}

@@ -145,11 +145,14 @@ def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
     else:
         # Get participants in the debate
         participants = debat.get_participants()
+        nb_participants = participants.count()
+        print(f"Nombre de participants : {nb_participants}")
 
         return render(request, 'zerver/app/diapyr_debate_detail.html', {
             'debat': debat,
             'participants': participants,
-    })
+            'nb_participants': nb_participants,
+        })
 
 
 

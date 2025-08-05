@@ -14,7 +14,7 @@
         <button type="button" class="btn" id="btn-primary" >Informations du débat</button>
         <button type="button" class="btn" id="btn-secondary">Participants</button>
         <button type="button" class="btn" id="btn-third">Choisir les paramètres de la phase 2</button>
-</div>
+    </div>
 
     <div class="debat-detail-output">
         <div class="debat-detail-info">
@@ -53,24 +53,33 @@
             </table>
         </div>
         <div class="debat-detail-params">
-            <h2>Choisir les paramètres de la phase 2</h2>
+            <div class="debat-detail-text">
+                <h2>Phase 2 du débat</h2>
+                <p> Durant cette phase, vous allez pouvoir ajuster les paramètres du débat en fonction du nombre de participants qui ont rejoint le débat.</p>
+                <p> Attention, si aucune action de votre part n'est effectuée, le débat démarera 30 minutes après la phase d'inscription</p>
+            </div>
+            <p>Vous pouvez choisir les paramètres suivants :</p>
             <form id="params-form" method="post" action="">
                 {{ csrf_input }}
-                <label for="param1">Paramètre 1:</label>
+                <label for="param1">Date de début du débat :</label>
                 <input type="text" id="param1" name="param1" required>
-                <label for="param2">Paramètre 2:</label>
+                <label for="param2">Nombre de personne par groupe:</label>
                 <input type="text" id="param2" name="param2" required>
+                <label for="param3">Nombre de représentant par groupe:</label>
+                <input type="text" id="param3" name="param3" required>
+                <label for="param4">Temps par tour (en minutes):</label>
+                <input type="text" id="param4" name="param4" required>
                 <button type="submit">Enregistrer les paramètres</button>
             </form>
-            {% if params %}
-                <h3>Paramètres actuels :</h3>
-                <ul>
-                    <li>Paramètre 1: {{ params.param1 }}</li>
-                    <li>Paramètre 2: {{ params.param2 }}</li>
+            <h3> Informations de la phase 2</h3>
+            <div class="debat-info-list">
+                <ul class="debat-info-list">
+                    <li>Nombre de participants inscrit: <strong>{{ nb_participants }}</strong></li>
+                    <li>Nombre de groupe : {# debat.groups_count #}</li>
+                    <li>Nombre de tours : {# debat.rounds #}</li>
+                    <li> Estimation de la date de fin du débat : {# debat.estimated_end_date.strftime('%d/%m/%Y %H:%M') #}</li>
                 </ul>
-            {% else %}
-                <p>Aucun paramètre défini pour ce débat.</p>
-            {% endif %}
+            </div>
         </div>
     </div>
 </div>
