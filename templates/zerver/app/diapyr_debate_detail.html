@@ -1,5 +1,9 @@
+<head>
+    <link rel="stylesheet" href="{{ static('styles/debat_detail.css') }}">
+</head>
 {% extends "zerver/diapyr_base.html" %}
-        
+
+
 {% block content %}
 
 
@@ -7,9 +11,9 @@
 
 <div class="debat-detail-main">
     <div class="debat-detail-options">
-        <button type="button" class="btn btn-primary">Informations du débat</button>
-        <button type="button" class="btn btn-secondary">Participants</button>
-        <button type="button" class="btn btn-third">Choisir les paramètres de la phase 2</button>
+        <button type="button" class="btn" id="btn-primary" >Informations du débat</button>
+        <button type="button" class="btn" id="btn-secondary">Participants</button>
+        <button type="button" class="btn" id="btn-third">Choisir les paramètres de la phase 2</button>
 </div>
 
     <div class="debat-detail-output">
@@ -48,6 +52,26 @@
                 </tbody>
             </table>
         </div>
+        <div class="debat-detail-params">
+            <h2>Choisir les paramètres de la phase 2</h2>
+            <form id="params-form" method="post" action="">
+                {{ csrf_input }}
+                <label for="param1">Paramètre 1:</label>
+                <input type="text" id="param1" name="param1" required>
+                <label for="param2">Paramètre 2:</label>
+                <input type="text" id="param2" name="param2" required>
+                <button type="submit">Enregistrer les paramètres</button>
+            </form>
+            {% if params %}
+                <h3>Paramètres actuels :</h3>
+                <ul>
+                    <li>Paramètre 1: {{ params.param1 }}</li>
+                    <li>Paramètre 2: {{ params.param2 }}</li>
+                </ul>
+            {% else %}
+                <p>Aucun paramètre défini pour ce débat.</p>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% if request.user.is_authenticated %}
@@ -55,5 +79,7 @@
         <a href="{{ url('diapyr_my_debates') }}">Retour à la liste de mes débats</a>
     </div>
 {% endif %}
+
+<script src="{{ static('script/debat_detail.js')}}"></script>
 
 {% endblock content %}
