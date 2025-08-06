@@ -75,18 +75,22 @@
             <h3> Informations de la phase 2</h3>
             <div class="debat-info-list">
                 <ul class="debat-info-list">
-                    <li>Nombre de participants inscrit: <strong>{{ nb_participants }}</strong></li>
-                    <li>Nombre de groupe : </li>
-                    <li>Nombre de tours : </li>
-                    <li>Durée du débat en minutes : </li>
                     {% if result %}
                         <li>Nombre de participants inscrit: <strong>{{ nb_participants }}</strong></li>
                         <li>Nombre de groupe : {{ result["nb_groups"] }}</li>
                         <li>Nombre de tours : {{ result["num_rounds"] }}</li>
                         <li>Durée du débat en minutes : {{ result["estimated_duration"] }}</li>
+
+                    {% else %}
+                        <li>Nombre de participants inscrit: <strong>{{ nb_participants }}</strong></li>
                     {% endif %}
                     <!-- Trouver un moyen pour afficher la répartition des utilisateurs-->
                 </ul>
+
+                {% if result %}
+                    <h4> Composition des groupes au 1er tours :</h4>
+                    <p> Il y a {% for key, value in result["initial_groups"].items() %}{{ value }} groupe(s) de {{ key }} participant(s){% if not loop.last %}, {% endif %}{% endfor %}.</p>
+                {% endif %}
             </div>
         </div>
     </div>

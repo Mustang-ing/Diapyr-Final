@@ -174,6 +174,8 @@ def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
 
             return render(request,'zerver/app/diapyr_debate_detail.html', {
                     'debat': debat,
+                    'participants': participants,
+                    'nb_participants': nb_participants,
                     'result': result,
                     'message': f"Debate {debat.title} updated successfully"
                 })

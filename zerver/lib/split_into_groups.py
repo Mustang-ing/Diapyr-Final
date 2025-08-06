@@ -1,4 +1,5 @@
 import random
+from xxlimited import new
 from zerver.models.debat import Debat, Participant
 from random import shuffle
 import math
@@ -17,6 +18,7 @@ def split_into_groups(debat_users: list[Participant], max_per_group: int) -> lis
 
 
         if n <= max_per_group:
+            print(f"Nombre de participants ({n}) inférieur ou égal au nombre maximal de participants par groupe ({max_per_group}).")
             return [users]
 
     
@@ -26,6 +28,7 @@ def split_into_groups(debat_users: list[Participant], max_per_group: int) -> lis
             print( math.ceil(n/max_per_group))
             print(f"Nombre de groupes calculé : {num_groups}")
         except ZeroDivisionError:
+            print("Erreur : Le nombre maximal de participants par groupe ne peut pas être zéro.")
             return []
 
         min_per_group = n // num_groups
@@ -56,20 +59,35 @@ def next_step_preparation(groups:list[list[Participant]], max_per_group: int, ma
             return None
            
         """
+        #Methode1
         A chaque étape, seul au maximum max_representant utilisateurs sont conservés par groupe.
         Ainsi, dans un débat, on aura max_representant * nb_groups utilisateurs qui passeront à l'étape suivante.
-        """
+        
         next_user = random.sample(users,max_representant*nb_groups) 
-        print(f"Nombre d'utilisateurs sélectionnés pour la prochaine étape : {len(next_user)}")
+        print(f"Nombre d'utilisateurs sélectionnés pour la prochaine étape : {len(next_user)} - Nombre de représentants par groupe : {max_representant}")
         print(f"Utilisateurs sélectionnés : {next_user}")
+        """
 
+        """
+        #Methode2
+        On utilise directement groups et on sélectionne pour chaque groupe aléatoirement max_representant utilisateurs.
+        """
+
+        next_users = [random.sample(group,max_representant) for group in groups ]
+        print(f"Nombre de représentants maximum par groupe : {max_representant} - Nombre de groupes : {len(next_users)} - Nombre d'utilisateurs : {sum(len(group) for group in next_users)}")
+
+        new_participants = [participant for group in next_users for participant in group]  # On aplatit la liste des groupes
+        print(new_participants)
+
+        
         #On vérifie si leurs nombre est assez grand pour etre divisé OU au qu'il y a au moins 2 utilisateurs
-        if len(users) <= max_per_group or len(users) < 2:
-            return [users]
+        if len(new_participants) <= max_per_group or len(new_participants) < 2:
+            return [new_participants]  # On retourne la liste des utilisateurs sélectionnés comme un seul groupe
 
         print(f"Test réussi")
 
-        return split_into_groups(next_user, max_per_group)
+
+        return split_into_groups(new_participants, max_per_group)
 
 
 """
@@ -80,6 +98,24 @@ It will return a dictionary who contains the following data:
 - num_rounds: the number of rounds in the debate. Map by "num_rounds"
 - estimated_duration: the estimated duration of the debate in minutes. Map by "estimated_duration"
 """
+
+def get_composition_groups(groups: list[list[Participant]]) -> dict[int: int , int : int]:
+    compo = {}
+    #Methode1
+    
+    #compo = { x: 1 if x not in compo else compo[x] + 1 for x in [len(group) for group in groups] }
+    #Pour (4,4,3) affiche (4:1,3:1 )
+    #Methode2
+    raw_compo = [len(group) for group in groups]
+    for x in raw_compo:
+         if x in compo:
+            compo[x] += 1
+         else:
+            compo[x] = 1
+    
+    print(f"Composition des groupes : {compo}")
+    return compo
+         
 
 def phase2_preparation(debat: Debat, max_per_group: int, time_between_round: int, max_representant: int) -> dict[ str:list[list[Participant]] , str:int , str:int]:
     
@@ -92,13 +128,17 @@ def phase2_preparation(debat: Debat, max_per_group: int, time_between_round: int
         raise ValueError("No groups created, check the number of participants and max_per_group")
     elif len(groups) == 1:
         return {
-            "initial_groups": groups,
+            "initial_groups": {1 : 1},
             "num_rounds": 0,
             "estimated_duration": 0
         }
     
+        
+    
     else:
         print(f"Nombre de groupes créés : {len(groups)}")
+        #initial_group_composition = tuple(len(group) for group in groups)
+        #print(initial_group_composition)
 
         #Secondly, we will estimate the total time of the debate based on the number of groups, the time between rounds and the number of representatives per group.
         # We also take this opportunity to save all the groups that have been computed into a list. Even if not used for now
@@ -115,7 +155,7 @@ def phase2_preparation(debat: Debat, max_per_group: int, time_between_round: int
             if num_rounds == max_iterations:
                 print("Avertissement : nombre maximal d'itérations atteint, boucle interrompue pour éviter une boucle infinie.")
                 return {
-                    "initial_groups": debat_groups_structure[0],
+                    "initial_groups": get_composition_groups(debat_groups_structure[0]),
                     "nb_groups": len(debat_groups_structure[0]),
                     "num_rounds": num_rounds,
                     "estimated_duration": 0
@@ -124,9 +164,11 @@ def phase2_preparation(debat: Debat, max_per_group: int, time_between_round: int
 
         estimated_duration = num_rounds * time_between_round
 
+       
+
         print(f"Durée totale estimée du débat : {estimated_duration} minutes")
         return {
-            "initial_groups": debat_groups_structure[0],
+            "initial_groups":  get_composition_groups(debat_groups_structure[0]),
             "nb_groups": len(debat_groups_structure[0]),
             "num_rounds": num_rounds,
             "estimated_duration": estimated_duration
