@@ -56,7 +56,8 @@ class Debat(models.Model):
     debat_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=100,null=False,default="")
     creator = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='created_debates', null=True, blank=True,default=None)
-    max_per_group = models.IntegerField()
+    max_per_group = models.IntegerField()  # Maximum number of participants per group)
+    max_representant = models.IntegerField(null=True, blank=True)
     subscription_end_date = models.DateTimeField()
     start_date = models.DateTimeField(null=True, blank=True, default=None)  # Date when the debate starts
     time_between_round = models.IntegerField()
@@ -70,6 +71,7 @@ class Debat(models.Model):
     creation_date = models.DateTimeField(default=timezone.now) 
     debat_created = models.BooleanField(default=False) # A terme, il faudrait plutôt utiliser step pour savoir si le débat à démarré ou pas.
     is_archived = models.BooleanField(default=False, null=True)
+    is_validated = models.BooleanField(default=False, null=True)  # Indicates if the debate parameters are validated by the creator
     type = models.CharField(max_length=100, choices=Debate_Kind.choices,null=True, default=Debate_Kind.General)
     debat_participant = models.ManyToManyField(Participant)
     #criteres = ArrayField(models.CharField(max_length=50), default=list, blank=True, null=True)

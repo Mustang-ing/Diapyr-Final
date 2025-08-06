@@ -153,9 +153,12 @@ def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
         print('Les données POST sont : ', request.POST) 
 
         start_date = request.POST.get('start_date', '').strip()
+        start_time = request.POST.get('start_time', '').strip()
         max_per_group = int(request.POST.get('max_per_group', 0))
         time_between_round = int(request.POST.get('time_between_round', 0))
         max_representant = int(request.POST.get('nb_rep_per_grp', 0))
+
+        start_date = f"{start_date} {start_time}" if start_time else start_date
 
         try:
             # La on doit appeler la méthode pour calculer les paramètres du débat
@@ -170,7 +173,18 @@ def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
                 return HttpResponse("Only one group created, check the number of participants and max_per_group", status=400)
             
             print("Phase 2 preparation result:", result)
+
+            print(f"Old parameters of {debat} : max_per_group={debat.max_per_group}, time_between_round={debat.time_between_round}, max_representant={debat.max_representant}, start_date={debat.start_date}")
             
+            # Update the debate with the new parameters
+            debat.max_per_group = max_per_group
+            debat.time_between_round = time_between_round
+            debat.max_representant = max_representant
+            debat.start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M") - timedelta(hours=2) # Set start date substract 2 hours because of the stupid bug of Windows
+            debat.save()
+
+            print(f"New parameters of {debat} : max_per_group={debat.max_per_group}, time_between_round={debat.time_between_round}, max_representant={debat.max_representant}, start_date={debat.start_date}")
+
 
             return render(request,'zerver/app/diapyr_debate_detail.html', {
                     'debat': debat,

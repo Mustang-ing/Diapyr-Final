@@ -565,6 +565,7 @@ v1_api_and_json_patterns = [
     # Diapyr_alt integration
     rest_path("diapyr/subscribe/debat", POST=subscribe_user_to_debat),
     rest_path("diapyr/debat/update/phase2/<int:debat_id>/", POST=diapyr_update_debat_phase2),
+    #rest_path("diapyr/debat/update/phase2/<int:debat_id>/validate", POST=diapyr_join_debat),
 ]
 
 integrations_view = IntegrationView.as_view()

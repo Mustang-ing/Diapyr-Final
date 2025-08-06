@@ -99,11 +99,14 @@ margin-top: 10px;
 .debat-detail-params {
     display: none;
     margin-top: 20px;
+    display: flex;
+    flex-direction: column;
 }
 .debat-detail-params label {
     display: block;
     margin-bottom: 10px;
     font-weight: bold;
+    
 }
 
 .debat-info-list{

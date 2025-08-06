@@ -44,7 +44,7 @@ def main():
     # Create a new debate
     num = Debat.objects.count() 
     debat = Debat.objects.create(
-        title=f"TestDebate {num}",
+        title=f"TestDebate - Beta2 {num}",
         creator=UserProfile.objects.get(id=11),  # Assuming the creator is the first user
         max_per_group=max_per_group,
         subscription_end_date=datetime.now() + timedelta(seconds=5),
