@@ -5,6 +5,7 @@ from django.contrib.postgres.fields import ArrayField
 from zerver.models.users import get_user_profile_by_id
 from zerver.models import(
     UserProfile,
+    Stream
 ) 
 
 
@@ -74,6 +75,8 @@ class Debat(models.Model):
     is_validated = models.BooleanField(default=False, null=True)  # Indicates if the debate parameters are validated by the creator
     type = models.CharField(max_length=100, choices=Debate_Kind.choices,null=True, default=Debate_Kind.General)
     debat_participant = models.ManyToManyField(Participant)
+    #New field to use UserProfile instead of Participant
+    debat_participants = models.ManyToManyField(UserProfile, related_name='debates_participated', blank=True)
     #criteres = ArrayField(models.CharField(max_length=50), default=list, blank=True, null=True)
 
     def __str__(self):
@@ -110,7 +113,6 @@ def check_user_already_participant(debat: Debat, user_profile: UserProfile) -> b
     This is used to prevent duplicate subscriptions.
     """
     return debat.debat_participant.filter(user_id=user_profile).exists()
-    
 
 class Group(models.Model):
     """In Dipayr there a many groups in a phase of a debate. 
@@ -118,6 +120,7 @@ class Group(models.Model):
 
     id = models.AutoField(primary_key=True)
     debat = models.ForeignKey(Debat, on_delete=models.CASCADE, related_name='groups')
+    stream = models.OneToOneField(Stream, on_delete=models.CASCADE, related_name='group', null=True, blank=True) 
     phase = models.IntegerField(default=1)  # Phase of the debate
     created_at = models.DateTimeField(auto_now_add=True)
     members = models.ManyToManyField(Participant, through='GroupParticipant', related_name='+')
@@ -133,6 +136,7 @@ class GroupParticipant(models.Model):
     id = models.AutoField(primary_key=True)
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='+')
     participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='group_participants')
+    participant_new = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='group_participants', null=True, default=None)  # New field to use UserProfile instead of Participant
 
     def __str__(self):
         return f"{self.participant.pseudo} in Group {self.group.id} of Debate {self.group.debat.title}"
