@@ -259,8 +259,8 @@ def get_user_id(user_email: str) -> str:
             return user["user_id"]
     return None
 
-
-def get_email_by_full_name(full_name: str) -> str:
+# Fonction a retirer
+def get_email_by_full_name(full_name: str) -> str: 
     #Récupère l'email à partir du nom complet.
     try:
         result = client.get_members()
@@ -272,7 +272,7 @@ def get_email_by_full_name(full_name: str) -> str:
             return user['email']
     return None  # Not found
 
-
+#Fonction a retirer
 def get_all_zulip_user_emails():
     result = get_client().get_members()
     return [user["email"] for user in result["members"]]
@@ -524,6 +524,8 @@ def create_debat() -> None:
             print(listeDebat)
             print(f"Débat créé : {debat.title}")
 
+
+#A suppr dans le futur, car on devrait se suffir de la BDD
 def add_user() -> None:
     print("Vérification des utilisateurs à ajouter...")
     current_time = datetime.now(timezone.utc)
