@@ -35,10 +35,10 @@
     <div class="Main-link">
         <h2> Liste des débats auxquels vous participez</h2><br>
         <ul class="debate-list">
-            {% if (joined_debates|length) == 0 %}
+            {% if (joined_debates_v2|length) == 0 %}
                 <p>Vous ne participez à aucun débat.</p>
             {% endif %}
-            {% for deb in joined_debates %}
+            {% for deb in joined_debates_v2 %}
                 <li class="debate-item">
                         <strong>{{ deb.title }} - </strong>
                         Description: {{ deb.description }}

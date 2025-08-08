@@ -96,7 +96,7 @@ class Debat(models.Model):
     
     def get_participants(self):
         """Return a list of participants in the debate."""
-        return self.debat_participant.all()
+        return self.debat_participants.all()
     
     
 
@@ -123,7 +123,7 @@ class Group(models.Model):
     stream = models.OneToOneField(Stream, on_delete=models.CASCADE, related_name='group', null=True, blank=True) 
     phase = models.IntegerField(default=1)  # Phase of the debate
     created_at = models.DateTimeField(auto_now_add=True)
-    members = models.ManyToManyField(Participant, through='GroupParticipant', related_name='+')
+    members = models.ManyToManyField(UserProfile, through='GroupParticipant', related_name='group_participants')
 
     def __str__(self):
         return f"Group {self.id} for Debate {self.debat.title} (Phase {self.phase})"
@@ -134,9 +134,8 @@ class GroupParticipant(models.Model):
     A participant can be in multiple groups, but only one group per debate."""
 
     id = models.AutoField(primary_key=True)
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='+')
-    participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='group_participants')
-    participant_new = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='group_participants', null=True, default=None)  # New field to use UserProfile instead of Participant
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    participant = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
 
     def __str__(self):
         return f"{self.participant.pseudo} in Group {self.group.id} of Debate {self.group.debat.title}"
@@ -150,8 +149,8 @@ class Vote(models.Model):
 
     id = models.AutoField(primary_key=True) 
     group = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='vote')
-    voter = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='votes_cast')
-    voted_participant = models.ForeignKey(Participant, on_delete=models.CASCADE, related_name='votes_received')
+    voter = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='votes_cast')
+    voted_participant = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='votes_received')
     vote_date = models.DateTimeField(auto_now_add=True)
     state = models.CharField(max_length=20, default='pending',null=True,blank=True)  # pending, accepted, rejected
     phase = models.IntegerField(default=1)  # Phase of the debate

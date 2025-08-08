@@ -79,25 +79,26 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
 
     if request.method == "POST":
         debat_id = request.POST.get('debat', '').strip()
-        user = request.user
         username = request.user.full_name
         print(f"Username : {username}")
-        age = request.POST.get('age', '').strip()
-        domaine = request.POST.get('domaine', '').strip()
-        profession = request.POST.get('profession', '').strip()
+        #age = request.POST.get('age', '').strip()
+        #domaine = request.POST.get('domaine', '').strip()
+        #profession = request.POST.get('profession', '').strip()
 
 
         try:
             debat = Debat.objects.get(debat_id=debat_id)
-            participant = Participant.objects.create(
-                user=user,
-                pseudo=username,
-                age=age ,
-                domaine=domaine ,
-                profession=profession
-            )
             
+            #Old method with Participant model
+            participant = Participant.objects.create(
+                user=request.user,
+                pseudo=username,
+            )
+
+
+            # Add the participant to the debate
             debat.debat_participant.add(participant)
+            debat.debat_participants.add(request.user)  # Add the user directly to the debate
             return redirect(reverse('home'))  # Redirect to diapyr_home after successfully joining a debate
         except Debat.DoesNotExist:
             return HttpResponse("Debate not found.", status=404)
@@ -114,14 +115,9 @@ def show_debates(request: HttpRequest) -> HttpRequest:
     #1 - Récupérer tous les participant_id associé à l'user
     #2 - Dans la table jointes, récupérer les débat associé à ces participant_id
     #Easiest way is to use the ManyToMany relationship in Django.
-    joined_debates = []
-    for p in Participant.objects.filter(user=request.user):
-        debat = Debat.objects.filter(debat_participant=p)
-        joined_debates.extend(debat)  # Add debates to the list
-        print(debat)
-
-    #Python way 
-    #joined_debates = [Debat.objects.filter(debat_participant=p) for p in Participant.objects.filter(user=request.user)]
+    
+    joined_debates = list(UserProfile.objects.get(id=request.user.id).debates_participated.all())
+    print(f"Joined debates : {joined_debates}")
 
     active_debates = [ debat for debat in joined_debates if not debat.is_archived ]
     print(f"Active debates: {active_debates}")

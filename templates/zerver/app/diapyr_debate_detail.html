@@ -35,7 +35,7 @@
                 <tbody>
                     {% for participant in participants %}
                         <tr>
-                            <td>{{ participant.pseudo }}</td>
+                            <td>{{ participant.full_name }}</td>
                             <td>
                                 {% if participant.is_representative %}
                                     Oui

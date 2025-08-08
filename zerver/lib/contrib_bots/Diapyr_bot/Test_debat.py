@@ -62,7 +62,8 @@ def main():
             pseudo=f"{user['full_name']}",
         )
         debat.debat_participant.add(participant)
-        print(f"Participant créé : {participant.pseudo} avec l'email {participant.email}")
+        debat.debat_participants.add(UserProfile.objects.get(id=user['user_id']))  # Add the user directly to the debate
+        print(f"Participant {i+1} créé : {user['full_name']} - {user['email']}")
 
 
     #Get the status 
