@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from zerver.decorator import zulip_login_required
 from zerver.lib.response import json_success
 from zerver.models import UserProfile
-from zerver.models.debat import  Debat, Participant
+from zerver.models.debat import  Debat
 from zerver.actions.subscribe_debat import do_subscribe_user_to_debat
 from zerver.lib.exceptions import JsonableError
 
@@ -18,9 +18,6 @@ def subscribe_user_to_debat(
     request: HttpRequest,
     user_profile: UserProfile,
     #*, # Uncomment if you want to enforce keyword-only arguments
-    age=None,
-    domaine=None,
-    profession=None
 ) -> HttpResponse:
     
     """
@@ -34,24 +31,16 @@ def subscribe_user_to_debat(
 
     if request.method == "POST":
         debat_id = request.POST.get('debat', '').strip()
-        username = request.user.full_name
-        print(f"Username : {username}")
-        age = request.POST.get('age', '').strip()
-        domaine = request.POST.get('domaine', '').strip()
-        profession = request.POST.get('profession', '').strip()
+        print(f"Username : {user_profile.get_username()}")
 
     try:
         debat = Debat.objects.get(debat_id=int(debat_id))
-        print(f"Debat : {debat.title} | Utilisateur à inscrire - 1 : { user_profile.full_name} | Utilisateur à inscrire - 2 : {user_profile.get_username()}")
+        print(f"Debat : {debat.title} | Utilisateur à inscrire - 1 : {user_profile.get_username()}")
         do_subscribe_user_to_debat(
             user_profile=user_profile,
             debat_id=debat.debat_id,
-            username=username,
-            age=age,
-            domaine=domaine,
-            profession=profession
         )
-        return json_success(request, data={"message": f"User {username} subscribed sucessfully to the debate {debat.title}"})
+        return json_success(request, data={"message": f"User {user_profile.get_username()} subscribed sucessfully to the debate {debat.title}"})
     except ValueError as e:
         raise JsonableError(str(e))
     except Debat.DoesNotExist:

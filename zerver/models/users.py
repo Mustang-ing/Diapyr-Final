@@ -650,13 +650,6 @@ class UserProfile(AbstractBaseUser, PermissionsMixin, UserBaseSettings):
     }
     ROLE_API_NAME_TO_ID = {v: k for k, v in ROLE_ID_TO_API_NAME.items()}
 
-    #Diapyr specific fields - These field are used to replace the hollow Model Participant used until 0.9.
-    # This model did not have any increase value compared to UserProfile.
-    is_registered_to_a_debate = models.BooleanField(null=True, default=False)
-    is_active_in_diapyr = models.BooleanField(null=True, default=False)
-    is_representative = models.BooleanField(null=True, default=False)
-    current_tour = models.IntegerField(null=True, default=None)
-
     class Meta:
         constraints = [
             models.UniqueConstraint(

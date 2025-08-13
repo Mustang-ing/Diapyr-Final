@@ -2,12 +2,11 @@ from django.shortcuts import render, redirect
 from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from zerver.decorator import zulip_login_required
 from zerver.lib.split_into_groups import phase2_preparation
 from zerver.models import UserProfile
-from zerver.models.debat import Debat, Participant
+from zerver.models.debat import Debat
 from datetime import datetime, timedelta
 
 
@@ -81,23 +80,10 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
         debat_id = request.POST.get('debat', '').strip()
         username = request.user.full_name
         print(f"Username : {username}")
-        #age = request.POST.get('age', '').strip()
-        #domaine = request.POST.get('domaine', '').strip()
-        #profession = request.POST.get('profession', '').strip()
-
-
+    
         try:
             debat = Debat.objects.get(debat_id=debat_id)
-            
-            #Old method with Participant model
-            participant = Participant.objects.create(
-                user=request.user,
-                pseudo=username,
-            )
-
-
             # Add the participant to the debate
-            debat.debat_participant.add(participant)
             debat.debat_participants.add(request.user)  # Add the user directly to the debate
             return redirect(reverse('home'))  # Redirect to diapyr_home after successfully joining a debate
         except Debat.DoesNotExist:

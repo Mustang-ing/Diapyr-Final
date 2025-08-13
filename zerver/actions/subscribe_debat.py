@@ -1,7 +1,7 @@
 from django.db import transaction
 from django.utils import timezone
 from zerver.models import Client, UserPresence, UserProfile, Stream
-from zerver.models.debat import Debat, Participant
+from zerver.models.debat import Debat
 from datetime import datetime, timedelta
 
 
@@ -11,10 +11,6 @@ from datetime import datetime, timedelta
 def do_subscribe_user_to_debat(
     user_profile: UserProfile,
     debat_id: int,
-    username:str,
-    age: int,
-    domaine: str,
-    profession: str
 )->None:
     """
     We subscribe a user to a debate by creating a participant object, with the given parameters.
@@ -24,14 +20,9 @@ def do_subscribe_user_to_debat(
         debat = Debat.objects.get(debat_id=debat_id)
 
         # We need to check if the user is already a participant on the debate
-        #Will do this latter
-        """
-        print(f"Id de l'utilisateur : {user_profile.id})")
-        print(debat.debat_participant.filter(participant_id=user_profile.id).exists())
-        if debat.debat_participant.filter(participant_id=user_profile.id).exists():
+        print(f"Id de l'utilisateur : {user_profile.id}")
+        if debat.debat_participant.filter(user_id=user_profile.id).exists():
             raise ValueError("User is already a participant in this debate")
-
-        """
         
         #We also need to check if the time period for subscribing to the debate is still valid.
         #In the old version, a user can subscribe to a debate but are not in a group. We will have to wait the next step in there is one 
@@ -50,15 +41,8 @@ def do_subscribe_user_to_debat(
         if Stream.objects.filter(name=debat.title).exists() and Debat.objects.filter(title=debat.title).exists() :
             raise ValueError("A debate or a channel with the same name already exists in this realm")
                                       
-        # Create a new participant 
-        participant = Participant.objects.create(
-                pseudo=username,
-                user=user_profile,
-                age=age ,
-                domaine=domaine ,
-                profession=profession
-            )
-        debat.debat_participant.add(participant)
+        #Add a participant to the debate
+        debat.debat_participants.add(user_profile)
         debat.save()
     except Debat.DoesNotExist:
         raise ValueError("Debate not found")

@@ -1,44 +1,10 @@
 from datetime import date, timedelta
 from django.db import models
 from django.utils import timezone
-from django.contrib.postgres.fields import ArrayField  
-from zerver.models.users import get_user_profile_by_id
 from zerver.models import(
     UserProfile,
     Stream
 ) 
-
-
-
-
-class Participant(models.Model):
-
-    """A participant in a debate represent a temporary identity that are linked to a debate.
-Therefore a single user can have multiple participants in different debates."""
-
-    id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='participants', null=True, blank=True)
-    pseudo = models.CharField(max_length=100, null=False, default="") # Il faudrait peut être le passer en fonction property si le user change son nom.
-    age = models.CharField(max_length=20, blank=True, null=True)
-    domaine = models.CharField(max_length=100, blank=True, null=True)
-    profession = models.CharField(max_length=100, blank=True, null=True)
-    is_register = models.BooleanField(default=False, null=True)
-    is_representative = models.BooleanField(default=False, null=True)
-
-
-    #Defining utility methods that used user.py methods
-
-    def __str__(self):
-        return self.pseudo
-    
-    @property #The decorator @property allows us to access the email as an attribute.
-    def email(self) -> str | None:
-        return self.user.email if self.user else None
-    
-    def get_user_profile_by_id(self) -> UserProfile | None:
-        if self.user_id:
-            return get_user_profile_by_id(self.user_id)
-        return None
 
 
 class Debat(models.Model):
@@ -57,6 +23,7 @@ class Debat(models.Model):
     debat_id = models.AutoField(primary_key=True)
     title = models.CharField(max_length=100,null=False,default="")
     creator = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='created_debates', null=True, blank=True,default=None)
+    debat_participants = models.ManyToManyField(UserProfile,through='Participant', related_name='participate_at', blank=True)
     max_per_group = models.IntegerField()  # Maximum number of participants per group)
     max_representant = models.IntegerField(null=True, blank=True)
     subscription_end_date = models.DateTimeField()
@@ -74,30 +41,14 @@ class Debat(models.Model):
     is_archived = models.BooleanField(default=False, null=True)
     is_validated = models.BooleanField(default=False, null=True)  # Indicates if the debate parameters are validated by the creator
     type = models.CharField(max_length=100, choices=Debate_Kind.choices,null=True, default=Debate_Kind.General)
-    debat_participant = models.ManyToManyField(Participant)
-    #New field to use UserProfile instead of Participant
-    debat_participants = models.ManyToManyField(UserProfile, related_name='debates_participated', blank=True)
     #criteres = ArrayField(models.CharField(max_length=50), default=list, blank=True, null=True)
 
     def __str__(self):
         return self.title
     
-    @property
-    def creator_email_copilot(self) -> str | None:
-        if self.creator_id:
-            return self.creator_id.email
-        return None
-
-    @property
-    def creator_email(self) -> str | None:
-        if self.creator_id:
-            return get_user_profile_by_id(self.creator_id).email
-        return None
-    
     def get_participants(self):
         """Return a list of participants in the debate."""
         return self.debat_participants.all()
-    
     
 
 def check_subscription_end_date(debat: Debat) -> bool:
@@ -114,6 +65,21 @@ def check_user_already_participant(debat: Debat, user_profile: UserProfile) -> b
     """
     return debat.debat_participant.filter(user_id=user_profile).exists()
 
+
+
+class Participant(models.Model):
+
+    "The old class/model Participant is now a joint table between Debat and UserProfile"
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    debat = models.ForeignKey(Debat, on_delete=models.CASCADE)
+    #Those field we're moved out UserProfile because there are specific to a participation on a debate and not to a user (Who can participate at multiple debates)
+    is_registered_to_a_debate = models.BooleanField(null=True, default=False)
+    is_active_in_diapyr = models.BooleanField(null=True, default=False)
+    is_representative = models.BooleanField(null=True, default=False)
+    current_tour = models.IntegerField(null=True, default=None)
+
+
 class Group(models.Model):
     """In Dipayr there a many groups in a phase of a debate. 
     A group is a collection of participants"""
@@ -127,7 +93,8 @@ class Group(models.Model):
 
     def __str__(self):
         return f"Group {self.id} for Debate {self.debat.title} (Phase {self.phase})"
-    
+        
+        
 
 class GroupParticipant(models.Model):
     """A group participant is a participant that is in a group.
@@ -149,7 +116,7 @@ class Vote(models.Model):
 
     id = models.AutoField(primary_key=True) 
     group = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='vote')
-    voter = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='votes_cast')
+    voter = models.OneToOneField(UserProfile, on_delete=models.CASCADE, related_name='votes_cast')
     voted_participant = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='votes_received')
     vote_date = models.DateTimeField(auto_now_add=True)
     state = models.CharField(max_length=20, default='pending',null=True,blank=True)  # pending, accepted, rejected

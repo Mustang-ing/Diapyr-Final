@@ -1,6 +1,6 @@
 import random
-from xxlimited import new
-from zerver.models.debat import Debat, Participant
+from zerver.models import UserProfile
+from zerver.models.debat import Debat
 from random import shuffle
 import math
 
@@ -10,7 +10,7 @@ This function is used to split a list of participants into groups.
 It takes a list of participants and a maximum number of participants per group.
 It returns a list of groups, where each group is a list of participants.
 """
-def split_into_groups(debat_users: list[Participant], max_per_group: int) -> list[list[Participant]]:
+def split_into_groups(debat_users: list[UserProfile], max_per_group: int) -> list[list[UserProfile]]:
         users = list(debat_users)  # On copie la liste des participants pour ne pas la modifier
         shuffle(users)
 
@@ -49,10 +49,10 @@ def split_into_groups(debat_users: list[Participant], max_per_group: int) -> lis
 This function return a new list of participants by randomly selecting a maximum number of representatives from each group.
 Is used only to estimae the duration of a debate. We can compare it to a fast simulation of the debate.
 """
-def next_step_preparation(groups:list[list[Participant]], max_per_group: int, max_representant: int) -> list[list[Participant]]:
+def next_step_preparation(groups:list[list[UserProfile]], max_per_group: int, max_representant: int) -> list[list[UserProfile]]:
         
         nb_groups = len(groups)
-        users = [participant for group in groups for participant in group] #We transform the list to list[Participant]
+        users = [participant for group in groups for participant in group] #We transform the list to list[UserProfile]
         print(f"Nombre de participants : {len(users)}")
         if users is None or len(users) == 0:
             print(f"Aucun utilisateur inscrit !!!")
@@ -99,7 +99,7 @@ It will return a dictionary who contains the following data:
 - estimated_duration: the estimated duration of the debate in minutes. Map by "estimated_duration"
 """
 
-def get_composition_groups(groups: list[list[Participant]]) -> dict[int: int , int : int]:
+def get_composition_groups(groups: list[list[UserProfile]]) -> dict[int: int , int : int]:
     compo = {}
     #Methode1
     
@@ -117,7 +117,7 @@ def get_composition_groups(groups: list[list[Participant]]) -> dict[int: int , i
     return compo
          
 
-def phase2_preparation(debat: Debat, max_per_group: int, time_between_round: int, max_representant: int) -> dict[ str:list[list[Participant]] , str:int , str:int]:
+def phase2_preparation(debat: Debat, max_per_group: int, time_between_round: int, max_representant: int) -> dict[ str:list[list[UserProfile]] , str:int , str:int]:
     
     #Firstly, we are going to check if the max_per_group is coherent with the number of participants.
     participants = debat.get_participants()
@@ -180,7 +180,7 @@ def phase2_preparation(debat: Debat, max_per_group: int, time_between_round: int
         for i, group in enumerate(groups):
             group_obj = Group.objects.create(debat=debat, phase=2)
             for participant in group:
-                GroupParticipant.objects.create(group=group_obj, participant=participant)
+                GroupUserProfile.objects.create(group=group_obj, participant=participant)
             print(f"Groupe {i+1} créé avec {len(group)} participants.")
         
         # Update the debate with the new parameters

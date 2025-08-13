@@ -100,7 +100,7 @@ from zilencer.models import (
 from django.views.decorators.csrf import csrf_protect
 from django.template import engines
 from django.http import HttpResponse
-from zerver.models.debat import Debat, Participant
+from zerver.models.debat import Debat
 
 @csrf_protect
 def formulaire_debat_view(request):
