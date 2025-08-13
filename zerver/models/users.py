@@ -905,6 +905,15 @@ class UserProfile(AbstractBaseUser, PermissionsMixin, UserBaseSettings):
 
         super().set_password(password)
 
+    #Diapyr utility method
+
+    def is_registered_to(self, debat : "zerver.models.debat.Debat") -> bool:
+        return self.participate.is_registered_to(debat)
+    
+    def register_to(self,debat :"zerver.models.debat.Debat" ) -> None:
+        self.participate.register_to(debat)
+
+
 
 class PasswordTooWeakError(Exception):
     pass

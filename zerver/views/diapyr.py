@@ -101,8 +101,8 @@ def show_debates(request: HttpRequest) -> HttpRequest:
     #1 - Récupérer tous les participant_id associé à l'user
     #2 - Dans la table jointes, récupérer les débat associé à ces participant_id
     #Easiest way is to use the ManyToMany relationship in Django.
-    
-    joined_debates = list(UserProfile.objects.get(id=request.user.id).debates_participated.all())
+
+    joined_debates = list(UserProfile.objects.get(id=request.user.id).participate_at.all())
     print(f"Joined debates : {joined_debates}")
 
     active_debates = [ debat for debat in joined_debates if not debat.is_archived ]

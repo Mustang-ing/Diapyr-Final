@@ -548,12 +548,12 @@ def add_user() -> None:
                 #-----------------------------------------------------------------------------------------------
                 
                 for user in debat.debat_participants.all():
-                    if not user.is_registered_to_a_debate:
+                    participant = Participant.objects.get(user=user, debat=debat)
+                    if not participant.is_registered_to_a_debate:
                         print(f"Ajout de l'utilisateur : {user.full_name} avec l'email {user.email}")
                         if user.email is not None:
                             obj.add_subscriber(user.email, {"name": user.full_name})
-                            user.is_registered_to_a_debate = True
-                            user.save()
+                            participant.register_to()
                         else:
                             print(f"Utilisateur {user.full_name} non trouvé dans Zulip.")
             else:

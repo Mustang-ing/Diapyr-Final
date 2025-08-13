@@ -44,7 +44,7 @@ def main():
     # Create a new debate
     num = Debat.objects.count() 
     debat = Debat.objects.create(
-        title=f"TestDebate - Beta2 {num}",
+        title=f"TestDebate - Beta3 {num} ",
         creator=UserProfile.objects.get(id=157),  # Assuming the creator is the first user
         max_per_group=max_per_group,
         subscription_end_date=datetime.now() + timedelta(seconds=5),
@@ -57,11 +57,6 @@ def main():
     # Create participants
     
     for i,user in zip(range(nb_subscribers),real_user):
-        participant = Participant.objects.create(
-            user=UserProfile.objects.get(id=user['user_id']),
-            pseudo=f"{user['full_name']}",
-        )
-        debat.debat_participant.add(participant)
         debat.debat_participants.add(UserProfile.objects.get(id=user['user_id']))  # Add the user directly to the debate
         print(f"Participant {i+1} créé : {user['full_name']} - {user['email']}")
 

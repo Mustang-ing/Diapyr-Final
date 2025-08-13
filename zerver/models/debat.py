@@ -71,13 +71,29 @@ class Participant(models.Model):
 
     "The old class/model Participant is now a joint table between Debat and UserProfile"
     id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
-    debat = models.ForeignKey(Debat, on_delete=models.CASCADE)
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE,related_name='participate')
+    debat = models.ForeignKey(Debat, on_delete=models.CASCADE,related_name='debat_participant')
     #Those field we're moved out UserProfile because there are specific to a participation on a debate and not to a user (Who can participate at multiple debates)
     is_registered_to_a_debate = models.BooleanField(null=True, default=False)
     is_active_in_diapyr = models.BooleanField(null=True, default=False)
     is_representative = models.BooleanField(null=True, default=False)
     current_tour = models.IntegerField(null=True, default=None)
+    
+    #The class Meta is used to add a constraint to ensure the couple (user,debat) is unique 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'debat'], name='unique_participant')
+        ]
+
+
+    def __str__(self):
+        return f"Participant {self.user.pseudo} in Debate {self.debat.title}"
+
+
+    def register_to(self) -> None:
+        """Register the user to the debate."""
+        self.is_registered_to_a_debate = True
+        self.save()
 
 
 class Group(models.Model):
