@@ -39,6 +39,7 @@ def main():
         exit(1)
     max_per_group = int(input("Nombre de participants maximal dans un groupe : " ))
     time_between_steps = int(input("Temps entre chaque étape (en minutes) : "))
+    mode = int(input("Mode de test (1: Rapide, 2: Pré-inscription) : "))
 
 
     # Create a new debate
@@ -47,10 +48,12 @@ def main():
         title=f"TestDebate - Beta3 {num} ",
         creator=UserProfile.objects.get(id=157),  # Assuming the creator is the first user
         max_per_group=max_per_group,
-        subscription_end_date=datetime.now() + timedelta(seconds=5),
+        subscription_end_date=datetime.now() + timedelta(seconds=1),
         time_between_round=time_between_steps,
-        start_date=datetime.now() + timedelta(minutes=30),
+        start_date=datetime.now() + ( timedelta(minutes=30) if mode == 2 else timedelta(seconds=1) ),  # Set start date to 30 minutes later for pre-registration mode
+        step = (1 if mode == 2 else 1),  # Step 1 for pre-registration mode, Step 2 for quick mode
         description="This is a test debate")
+    
     print(f"Débat créé : {debat.title}")
 
 

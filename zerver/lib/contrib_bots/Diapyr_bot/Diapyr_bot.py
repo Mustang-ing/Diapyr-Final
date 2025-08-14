@@ -2,6 +2,8 @@ import json
 import os
 import sys
 
+from zerver.lib.diapyr import split_into_group_db, create_streams_for_groups_db, add_users_to_stream_db
+
 
 # Set the settings module from your Zulip settings (adjust path if needed)
 sys.path.append("/home/jass/Diapyr/Diapyr-Final") 
@@ -20,6 +22,7 @@ from zerver.models.debat import Debat,Participant,Group
 import statistics
 from zerver.models import (
     UserProfile,
+    Group,
 )    
 
 
@@ -108,6 +111,11 @@ class ObjectD:
             start += group_size
 
         print(f"Groupes créés : {len(groups)} - Groupes : {groups}")
+
+
+        #Methode avec la base de donné : 
+
+        split_into_group_db(Debat.objects.get(title=self.name), self.max_per_group)
         return groups
             
 
@@ -123,7 +131,8 @@ class ObjectD:
             if add_users_to_stream(stream_name, group):
                 notify_users(stream_name, group)
                 streams.append(stream_name)
-               
+
+        #create_streams_for_groups_db(Group.objects.filter(debat_id=Debat.objects.get(title=self.name).id), groups)
         return streams
 
     def next_step(self):

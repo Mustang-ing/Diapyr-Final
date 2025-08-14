@@ -669,7 +669,7 @@ class UserProfile(AbstractBaseUser, PermissionsMixin, UserBaseSettings):
 
     @override
     def __str__(self) -> str:
-        return f"{self.email} {self.realm!r}"
+        return f"{self.email} {self.realm!r} {self.full_name!r}"
 
     def get_role_name(self) -> str:
         return str(self.ROLE_ID_TO_NAME_MAP[self.role])
@@ -904,15 +904,6 @@ class UserProfile(AbstractBaseUser, PermissionsMixin, UserBaseSettings):
             raise PasswordTooWeakError
 
         super().set_password(password)
-
-    #Diapyr utility method
-
-    def is_registered_to(self, debat : "zerver.models.debat.Debat") -> bool:
-        return self.participate.is_registered_to(debat)
-    
-    def register_to(self,debat :"zerver.models.debat.Debat" ) -> None:
-        self.participate.register_to(debat)
-
 
 
 class PasswordTooWeakError(Exception):

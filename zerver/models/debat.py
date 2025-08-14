@@ -87,7 +87,7 @@ class Participant(models.Model):
 
 
     def __str__(self):
-        return f"Participant {self.user.pseudo} in Debate {self.debat.title}"
+        return f"Participant {self.user.full_name} in Debate {self.debat.title}"
 
 
     def register_to(self) -> None:
@@ -103,6 +103,7 @@ class Group(models.Model):
     id = models.AutoField(primary_key=True)
     debat = models.ForeignKey(Debat, on_delete=models.CASCADE, related_name='groups')
     stream = models.OneToOneField(Stream, on_delete=models.CASCADE, related_name='group', null=True, blank=True) 
+    group_name = models.CharField(max_length=100, null=True, blank=True)  # Optional name for the group
     phase = models.IntegerField(default=1)  # Phase of the debate
     created_at = models.DateTimeField(auto_now_add=True)
     members = models.ManyToManyField(UserProfile, through='GroupParticipant', related_name='group_participants')

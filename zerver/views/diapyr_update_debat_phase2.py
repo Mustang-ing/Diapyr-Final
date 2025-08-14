@@ -68,7 +68,7 @@ def diapyr_update_debat_phase2(
             debat.max_per_group = max_per_group
             debat.time_between_round = time_between_round
             debat.max_representant = max_representant
-            debat.start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M") - timedelta(hours=2) # Set start date substract 2 hours because of the stupid bug of Windows
+            debat.start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M") - datetime.timedelta(hours=2) # Set start date substract 2 hours because of the stupid bug of Windows
             debat.save()
 
 
