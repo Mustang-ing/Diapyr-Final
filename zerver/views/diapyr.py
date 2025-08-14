@@ -8,6 +8,11 @@ from zerver.lib.split_into_groups import phase2_preparation
 from zerver.models import UserProfile
 from zerver.models.debat import Debat
 from datetime import datetime, timedelta
+from zerver.actions import (
+    subscribe_debat,
+    create_debat,
+)
+
 
 
 
@@ -18,7 +23,6 @@ Zulip_login_required fonctionne de la même manière que login_required, mais il
 """
 @zulip_login_required
 @csrf_exempt
-@transaction.atomic(durable=True) # Ensure atomicity for database operations
 def formulaire_debat(request: HttpRequest) -> HttpResponse:
     
     #View to render the debate form page and handle POST requests.
@@ -44,15 +48,18 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
 
         end_date = datetime.now() + timedelta(minutes=int(end_date_str))
         # Initialisation d'un objet debat.
-        Debat.objects.create(
-            title=title,
-            description=description,
-            subscription_end_date=end_date,
-            creator=creator,
-            max_per_group=max_per_group,
-            time_between_round=time_between_round,
-            start_date=end_date + timedelta(minutes=30),  # Set start date 30 minutes after end date
-        )
+        try:
+            create_debat.do_create_debat(
+                title=title,
+                description=description,
+                creator=creator,
+                end_date=end_date,
+                max_per_group=max_per_group,
+                time_between_round=time_between_round
+            )
+        except ValueError as e:
+            return HttpResponseBadRequest(str(e))
+            
         return redirect(reverse('home'))  # Redirect to diapyr_home after successful form submission
     else:
         return render(request, 'zerver/app/formulaire_debat.html')
@@ -70,7 +77,6 @@ def diapyr_home(request: HttpRequest) -> HttpResponse:
 
 @zulip_login_required 
 @csrf_exempt
-@transaction.atomic(durable=True)
 def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
     debat = Debat.objects.all()
     print('La méthode de requête est : ', request.method)
@@ -83,11 +89,13 @@ def diapyr_join_debat(request: HttpRequest) -> HttpResponse:
     
         try:
             debat = Debat.objects.get(debat_id=debat_id)
-            # Add the participant to the debate
-            debat.debat_participants.add(request.user)  # Add the user directly to the debate
+            subscribe_debat.do_subscribe_user_to_debat(request.user, debat.debat_id)
             return redirect(reverse('home'))  # Redirect to diapyr_home after successfully joining a debate
         except Debat.DoesNotExist:
             return HttpResponse("Debate not found.", status=404)
+        
+        except ValueError as e:
+            return HttpResponseBadRequest(str(e))
 
     else:
         return render(request, 'zerver/app/diapyr_join_debat.html', {'debat': debat})

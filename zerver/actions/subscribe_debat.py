@@ -31,7 +31,7 @@ def do_subscribe_user_to_debat(
         print(f" Date de fin du débat : {debat.subscription_end_date} | Date actuelle : {datetime.now()}")
        
         if debat.subscription_end_date < timezone.now(): # We use timezone.now() to get the current time in the correct timezone, because the end_date is in UTC.(Offset aware)
-            raise ValueError("The debate has already start, you cannot subscribe anymore")         
+            raise ValueError("The subscription date is over, you cannot subscribe anymore")         
 
         if debat.is_archived:
             raise ValueError("The debate is closed, you cannot subscribe anymore")    
