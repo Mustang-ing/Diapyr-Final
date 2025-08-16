@@ -99,7 +99,7 @@
 
     /* Bootstrap 'a' tag styles for styling reload link */
     a#reload-lnk:focus {
-    outline: thin dotted #333;
+    outline: thin dotted #333
     outline: 5px auto -webkit-focus-ring-color;
     outline-offset: -2px;
     }
@@ -259,6 +259,17 @@
                             <span class="button-label">{{ _('Load more') }}</span>
                         </button>
                     </div>
+                </div>
+                <!-- Diapyr debate form container (inserted dynamically by debate_form.ts) -->
+                <div id="diapyr-debate-form-section" class="notdisplayed">
+                    <div class="diapyr-debate-form-header">
+                        <h3 class="diapyr-form-title">{{ _('Create a debate') }}</h3>
+                        <button id="diapyr-toggle-form" class="btn btn-secondary btn-sm" type="button">{{ _('Hide') }}</button>
+                    </div>
+                    <div id="diapyr-debate-form-wrapper"></div>
+                </div>
+                <div id="diapyr-debate-form-launch" class="diapyr-inline-button">
+                    <button id="diapyr-show-form" class="btn btn-primary btn-sm" type="button">{{ _('New debate') }}</button>
                 </div>
                 <div id="inbox-view">
                     <div class="inbox-container">

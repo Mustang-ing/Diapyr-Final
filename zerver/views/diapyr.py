@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest
+from django.http import HttpRequest, HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.urls import reverse
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
@@ -17,8 +17,7 @@ from datetime import datetime, timedelta
 Zulip_login_required fonctionne de la même manière que login_required, mais il contrôle que les cookies de session sont valides pour Zulip.
 """
 @zulip_login_required
-@csrf_exempt
-@transaction.atomic(durable=True) # Ensure atomicity for database operations
+@transaction.atomic(durable=True)  # Ensure atomicity for database operations
 def formulaire_debat(request: HttpRequest) -> HttpResponse:
     
     #View to render the debate form page and handle POST requests.
@@ -27,11 +26,9 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
     print('Les données POST sont : ', request.POST) 
     #Enregistrement des champs 
     if request.method == "POST":
-        #criteres = request.POST.getlist("criteres[]")
-        #print("✅ Critères cochés :", criteres)
         title = request.POST.get('nom', '').strip()
         description = request.POST.get('description', '').strip()
-        creator = request.user # We pass a UserProfile object
+        creator = request.user
         end_date_str = request.POST.get('Date_fin', '').strip()
         max_per_group = int(request.POST.get('nb_max', 0))
         time_between_round = int(request.POST.get('time_step', 0))
@@ -43,7 +40,6 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
             return HttpResponse("Invalid form data. Please fill out all fields correctly.", status=400)
 
         end_date = datetime.now() + timedelta(minutes=int(end_date_str))
-        # Initialisation d'un objet debat.
         Debat.objects.create(
             title=title,
             description=description,
@@ -51,11 +47,10 @@ def formulaire_debat(request: HttpRequest) -> HttpResponse:
             creator=creator,
             max_per_group=max_per_group,
             time_between_round=time_between_round,
-            start_date=end_date + timedelta(minutes=30),  # Set start date 30 minutes after end date
+            start_date=end_date + timedelta(minutes=30),
         )
-        return redirect(reverse('home'))  # Redirect to diapyr_home after successful form submission
-    else:
-        return render(request, 'zerver/app/formulaire_debat.html')
+        return redirect(reverse('home'))
+    return render(request, 'zerver/app/formulaire_debat.html')
 
 @zulip_login_required
 def diapyr_home(request: HttpRequest) -> HttpResponse:
@@ -185,6 +180,87 @@ def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
             'participants': participants,
             'nb_participants': nb_participants,
         })
+
+
+# ------------------ JSON API ENDPOINTS ------------------
+@zulip_login_required
+@transaction.atomic(durable=True)
+def create_debate_backend(request: HttpRequest) -> HttpResponse:
+    """JSON endpoint to create a debate (POST /json/diapyr/debates/create).
+
+    Expected POST body (JSON or form-encoded):
+      title: str
+      description: str (optional)
+      subscription_minutes: int (minutes until subscription closes)
+      max_per_group: int (>0)
+      time_between_round: int (>0)  # minutes between rounds
+
+    Returns JSON {result: "success", debat: {...}} or {result: "error", msg: "..."}.
+    """
+    if request.method != "POST":  # Method safeguard
+        return JsonResponse({"result": "error", "msg": "POST required"}, status=405)
+
+    # Support both application/json and form-encoded submissions
+    if request.content_type and "application/json" in request.content_type:
+        try:
+            import json
+            payload = json.loads(request.body or b"{}")
+        except json.JSONDecodeError:
+            return JsonResponse({"result": "error", "msg": "Invalid JSON"}, status=400)
+    else:
+        payload = request.POST
+
+    def _int(name: str) -> int:
+        try:
+            return int(payload.get(name, 0))
+        except (TypeError, ValueError):  # noqa: PERF203 (clarity more important here)
+            return 0
+
+    title = (payload.get("title") or "").strip()
+    description = (payload.get("description") or "").strip()
+    subscription_minutes = _int("subscription_minutes")
+    max_per_group = _int("max_per_group")
+    time_between_round = _int("time_between_round")
+
+    errors: list[str] = []
+    if not title:
+        errors.append("Title required")
+    if subscription_minutes <= 0:
+        errors.append("subscription_minutes must be > 0")
+    if max_per_group <= 0:
+        errors.append("max_per_group must be > 0")
+    if time_between_round <= 0:
+        errors.append("time_between_round must be > 0")
+
+    if errors:
+        return JsonResponse({"result": "error", "msg": "; ".join(errors)}, status=400)
+
+    now = datetime.now()
+    subscription_end_date = now + timedelta(minutes=subscription_minutes)
+    debat = Debat.objects.create(
+        title=title,
+        description=description,
+        subscription_end_date=subscription_end_date,
+        creator=request.user,
+        max_per_group=max_per_group,
+        time_between_round=time_between_round,
+        start_date=subscription_end_date + timedelta(minutes=30),
+    )
+
+    return JsonResponse(
+        {
+            "result": "success",
+            "debat": {
+                "id": debat.debat_id,
+                "title": debat.title,
+                "subscription_end_date": debat.subscription_end_date.isoformat(),
+                "start_date": debat.start_date.isoformat() if debat.start_date else None,
+                "max_per_group": debat.max_per_group,
+                "time_between_round": debat.time_between_round,
+            },
+        },
+        status=200,
+    )
 
 
 

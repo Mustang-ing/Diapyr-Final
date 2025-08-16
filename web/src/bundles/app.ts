@@ -11,6 +11,10 @@ import "../reload.ts";
 import "../templates.ts";
 import "../zulip_test.ts";
 
+// Diapyr debate inline form logic (adds handlers and global helper)
+import "../diapyr/debate_form.ts";
+
+
 // Import styles
 import "tippy.js/dist/tippy.css";
 // Adds color inheritance to the borders when using the default CSS Arrow.

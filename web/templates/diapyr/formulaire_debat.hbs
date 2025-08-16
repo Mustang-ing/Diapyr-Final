@@ -1,0 +1,64 @@
+{{! Handlebars template for Diapyr - Formulaire de création de débat }}
+{{! Place in web/templates/diapyr/formulaire_debat.hbs }}
+
+<div class="diapyr-debate-create" id="diapyr-debate-create-root">
+  <h1 class="diapyr-form-title">{{t "Créer un débat"}}</h1>
+
+  <form id="diapyr-debate-create-form" class="diapyr-form" novalidate>
+    <fieldset class="diapyr-fieldset">
+      <legend>{{t "Informations du débat"}}</legend>
+
+      <div class="form-group">
+        <label for="diapyr_debate_name">{{t "Nom du débat"}}</label>
+        <input type="text" id="diapyr_debate_name" name="name" placeholder="{{t "Nom du débat"}}" required maxlength="100" />
+      </div>
+
+      <div class="form-group">
+        <label for="diapyr_max_per_group">{{t "Nombre maximal de participants par groupe"}}</label>
+        <input type="number" id="diapyr_max_per_group" name="max_per_group" min="1" step="1" required />
+      </div>
+
+      <div class="form-group">
+        <label for="diapyr_subscription_delay">{{t "Temps avant le début (minutes)"}}</label>
+        <input type="number" id="diapyr_subscription_delay" name="subscription_delay" min="1" step="1" required />
+        <small class="hint">{{t "Durée (en minutes) pendant laquelle les inscriptions sont ouvertes avant le démarrage."}}</small>
+      </div>
+
+      <div class="form-group">
+        <label for="diapyr_phase_duration">{{t "Durée des phases (minutes)"}}</label>
+        <input type="number" id="diapyr_phase_duration" name="phase_duration" min="1" step="1" required />
+      </div>
+
+      <div class="form-group">
+        <label for="diapyr_description">{{t "Description du débat"}}</label>
+        <textarea id="diapyr_description" name="description" rows="4" placeholder="{{t "Décrivez le sujet du débat ici..."}}"></textarea>
+      </div>
+
+      {{! Uncomment / extend later for optional criteria }}
+      {{!--
+      <div class="form-group optional-criteria">
+        <h3>{{t "Critères personnalisés (facultatif)"}}</h3>
+        <label><input type="checkbox" name="criteria" value="age" /> {{t "Âge"}}</label>
+        <label><input type="checkbox" name="criteria" value="profession" /> {{t "Profession"}}</label>
+        <label><input type="checkbox" name="criteria" value="etudes" /> {{t "Niveau d’études"}}</label>
+        <label><input type="checkbox" name="criteria" value="domaine" /> {{t "Domaine"}}</label>
+        <label><input type="checkbox" name="criteria" value="experience" /> {{t "Expérience en débat"}}</label>
+      </div>
+      --}}
+
+      <div class="form-actions">
+        <button type="submit" class="button zulip-btn diapyr-submit">{{t "Créer le débat"}}</button>
+      </div>
+    </fieldset>
+
+    <div class="form-messages" aria-live="polite" id="diapyr-debate-form-messages"></div>
+  </form>
+</div>
+
+{{! Expected JS wiring (example to implement separately):
+  * On submit, gather values:
+      name, max_per_group, subscription_delay, phase_duration, description
+  * POST to an internal JSON endpoint you define (e.g. /json/diapyr/debates/create)
+  * Handle success: show confirmation, maybe navigate/update list
+  * Handle validation errors: display inside #diapyr-debate-form-messages
+}}

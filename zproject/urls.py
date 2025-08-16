@@ -258,6 +258,7 @@ from zerver.views.diapyr import(
      diapyr_home,
      show_debates,
      show_debates_detail,
+    create_debate_backend,
 )
 from zerver.views.subscribe_debat import(
     subscribe_user_to_debat,
@@ -564,6 +565,7 @@ v1_api_and_json_patterns = [
     rest_path("export/realm/consents", GET=get_users_export_consents),
     # Diapyr_alt integration
     rest_path("diapyr/subscribe/debat", POST=subscribe_user_to_debat),
+    rest_path("diapyr/debates/create", POST=create_debate_backend),
     rest_path("diapyr/debat/update/phase2/<int:debat_id>/", POST=diapyr_update_debat_phase2),
     #rest_path("diapyr/debat/update/phase2/<int:debat_id>/validate", POST=diapyr_join_debat),
 ]
