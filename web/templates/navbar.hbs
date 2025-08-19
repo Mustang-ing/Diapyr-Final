@@ -93,15 +93,12 @@
                ➕  Diapyr
             </a>
             <ul id="diapyr-dropdown">
-                <li id="open-create-debate-modal">Créer un débat</li>
+                <a href="#" id="alt_create_debat" class="header-button" style="margin-left:50px; white-space: nowrap;">
+                {{t "Créer un débat"}}</a>
                 <li id="open-join-debate-modal">Rejoindre un débat</li> 
                 <li id="open-list-debates">Liste des débats</li>
                 <li id="open-my-debates-modal">Mes débats</li>
             </ul>
-            <!-- Bouton alternatif pour création inline -->
-            <a href="#" id="alt_create_debat" class="header-button" style="margin-left:12px; white-space: nowrap;">
-                {{t "Créer (inline)"}}
-            </a>
 
         </div>
 
@@ -126,27 +123,9 @@
                 }
             }, 1000); // délai pour laisser le DOM de Zulip se charger
     </script>
-{{!-- 
-    <!-- Script pour le bouton alternatif inline -->
-    <script nonce="{{csp_nonce}}">
-        document.addEventListener("DOMContentLoaded", () => {
-            const altBtn = document.getElementById("alt_create_debat");
-            if (!altBtn) {
-                return;
-            }
-            altBtn.addEventListener("click", (ev) => {
-                ev.preventDefault();
-                if (window.showDiapyrDebateForm) {
-                    window.showDiapyrDebateForm();
-                } else {
-                    console.warn("showDiapyrDebateForm indisponible – bundle non chargé ou erreur de build");
-                }
-            });
-        });
-    </script>
 
 
- --}}
+ 
 
         </div>
         <div class="column-middle" id="navbar-middle">

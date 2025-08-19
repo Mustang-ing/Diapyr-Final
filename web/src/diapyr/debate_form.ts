@@ -64,7 +64,7 @@ function attach_handlers(): void {
                     headers,
                     body: JSON.stringify(payload),
                     credentials: "same-origin",
-                });
+                });  
                 if (resp.ok) {
                     show_message("success", $("#diapyr-debate-form-messages"), "Débat créé.");
                     $form.trigger("reset");
