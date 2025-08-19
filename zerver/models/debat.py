@@ -110,8 +110,15 @@ class Group(models.Model):
 
     def __str__(self):
         return f"Group {self.id} for Debate {self.debat.title} (Phase {self.phase})"
-        
-        
+    
+    def get_users_id(self):
+        """Return a list of user IDs in the group."""
+        return [id for id in self.members.values_list('id', flat=True) ]
+    
+    def get_users_emails(self):
+        """Return a list of user emails in the group."""
+        return [email for email in self.members.values_list('email', flat=True)]
+
 
 class GroupParticipant(models.Model):
     """A group participant is a participant that is in a group.
@@ -122,8 +129,9 @@ class GroupParticipant(models.Model):
     participant = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
 
     def __str__(self):
-        return f"{self.participant.pseudo} in Group {self.group.id} of Debate {self.group.debat.title}"
+        return f"{self.participant.full_name} in Group {self.group.id} of Debate {self.group.debat.title}"
     
+            
 
 class Vote(models.Model):
     """

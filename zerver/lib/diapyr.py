@@ -1,6 +1,9 @@
 import random
 from django.db import transaction
-from zerver.models import UserProfile
+import zulip
+from zerver.actions.streams import bulk_add_subscriptions
+from zerver.lib.streams import list_to_streams
+from zerver.models import UserProfile, Stream
 from zerver.models.debat import (
     Debat,
     Participant,
@@ -10,11 +13,31 @@ from zerver.models.debat import (
 from random import shuffle
 import math
 
+try:  # External API client (used by the _via_api helper below); optional for internal path
+    external_client = zulip.Client(config_file="zerver/lib/contrib_bots/Diapyr_bot/zuliprc.txt")
+    print("Client Zulip initialisé avec succès (API mode disponible).")
+except zulip.ZulipError as e:  # pragma: no cover - just defensive logging
+    external_client = None
+    print(f"Erreur lors de l'initialisation du client Zulip (API mode désactivé): {e}")
+
+
+def notify_users(stream_name: str, debat_title: str, user_emails: list[str]) -> None:
+    #Notifie les utilisateurs de leur affectation à un groupe.
+    print(f"Notification de {user_emails} dans {stream_name}")
+    for email in user_emails:
+        message = {
+            "type": "private",
+            "to": email,
+            "content": f"Vous avez été affecté au groupe {stream_name} du débat {debat_title}'.",#Plus de clarté quelle groupe en particilier
+        }
+        external_client.send_message(message)
+
 @transaction.atomic(durable=True)
 def split_into_group_db(debat : Debat, max_per_group : int) -> None:
     """
     Split participants into groups for the debate.
     """
+    print("------------ Mode DB ------------------")
     users = list(debat.debat_participants.all())  # On copie la liste des participants pour ne pas la modifier
     shuffle(users)
 
@@ -47,44 +70,126 @@ def split_into_group_db(debat : Debat, max_per_group : int) -> None:
         start += group_size
     print(f"Groupes créés : {len(groups)} - Groupes : {groups}")
 
+    i = 1
     for group in groups:
-        group_instance = Group.objects.create(debat=debat, phase=debat.step)
+        group_instance = Group.objects.create(debat=debat, phase=debat.step, group_name=debat.title + f"Tour {debat.step - 2} - Groupe {i}")
         for user in group:
             GroupParticipant.objects.create(group=group_instance, participant=user)
             print(f"Participant {user.full_name} ajouté au groupe {group_instance.id} du débat {debat.title}")
+        i += 1
 
 
+def create_streams_for_groups_db_via_api(groups: set[Group], bot_user_id: int) -> list[Stream] | bool:
+    """Legacy/API version: use Zulip HTTP API (external client) to create + subscribe.
 
-def add_users_to_stream_db(stream_name: str, user_emails: list[str]) -> bool:
-    print(f"Ajout de {user_emails} dans {stream_name}")
-    user_ids = [get_user_id(email) for email in user_emails if get_user_id(email)]
-    # Ajout de l'ID du bot lui-même
-    bot_user_id = get_user_id(get_client().get_profile()["email"])
-    if bot_user_id and bot_user_id not in user_ids:
-        user_ids.append(bot_user_id)
-
-    if not user_ids:
+    Returns list of associated Stream objects (after creation/subscription) or False on error.
+    """
+    print("------------ Mode DB ------------------")
+    if external_client is None:
+        print("Client API indisponible; impossible d'utiliser create_streams_for_groups_db_via_api.")
         return False
-    try:
-        result = client.add_subscriptions(
-            streams=[{"name": stream_name}],
-            principals=user_ids,
+
+    print("Ajout des utilisateurs dans les streams (mode API HTTP)...")
+    created_streams: list[Stream] = []
+    i=1
+    for i, group in enumerate(groups):
+        print(f"Tentative d'ajout via API dans le stream : {group.group_name}")
+        try:
+            """
+            request = { 
+                "name": group.group_name,
+                "description": f"Group {group.id} du débat {group.debat.title}",
+                "subscribers": group.get_users_id() + [bot_user_id]
+            }
+            result = external_client.call_endpoint(url="channels/create", method="POST", request=request)
+            """
+            result = external_client.add_subscriptions(
+                streams=[{"name": group.group_name}],
+                principals=group.get_users_id() + [bot_user_id],
+            )
+            
+            if result.get("result") == "success":
+                print(f"Ajout réussi (API) dans le stream : {group.group_name}")
+                print(result)
+                group.stream = Stream.objects.get(name=group.group_name)
+                group.save(update_fields=["stream"])
+                created_streams.append(group.stream)
+            else:
+                print(f"Echec API pour {group.group_name}: {result}")
+        except Exception as e:  # pragma: no cover - defensive
+            print(f"Erreur lors de l'ajout des utilisateurs via API : {e}")
+            return False
+
+        notify_users(i, group.debat.title, group.get_users_emails())
+        i+=1
+    return created_streams
+
+
+@transaction.atomic(durable=True)
+def create_streams_for_groups_db(groups: set[Group], creator: UserProfile) -> list[Stream]:
+    """Internal version using list_to_streams + bulk_add_subscriptions (no HTTP API).
+
+    This will:
+      * Create any missing streams for the provided groups (name = group.group_name).
+      * Link the created/retrieved Stream object to Group.stream if not already set.
+      * Subscribe all current group members + the bot user ONLY to their own group's stream.
+
+    Returns a list of Stream objects (one per group processed).
+    """
+
+    print("------------ Mode DB ------------------")
+    realm = creator.realm
+    processed_streams: list[Stream] = []
+
+    i = 1
+    for group in groups:
+        stream_name = group.group_name or f"debate-group-{group.id}"
+        streams_raw = [
+            {
+                "name": stream_name.strip(),
+                "invite_only": False,
+                "is_web_public": False,
+                "history_public_to_subscribers": True,
+                # message_retention_days optional; defaults to realm policy
+            }
+        ]
+        # Create or fetch stream (autocreate=True). Using creator of the debate as acting user.
+        existing_streams, created_streams = list_to_streams(
+            streams_raw,
+            creator,
+            autocreate=True,
+            is_default_stream=False,
         )
-        print(f"Ajout réussi")
-        return result["result"] == "success"
-    except Exception as e:
-        print(f"Erreur lors de l'ajout des utilisateurs : {e}")
-        return False
+        stream_obj = (existing_streams + created_streams)[0]
 
+        # Link stream to group if missing
+        if group.stream_id != stream_obj.id or group.stream is None:
+            group.stream = stream_obj
+            group.save(update_fields=["stream"])
 
-def create_streams_for_groups_db(groups:set[Group]) -> list[str]:
-        #Crée des streams pour chaque groupe et ajoute les utilisateurs.
-        print("Ajout des utilisateurs dans les streams existants...")
-        streams = []
-        for i, group in enumerate(groups):
-            stream_name = Debat.objects.get(id=group.debat_id).title + f"P{groups.step} - Groupe {i+1}" #Changer le nom pour plus de clarté
-            print(f"Tentative d'ajout dans le stream : {stream_name}")
-            if add_users_to_stream_db(stream_name, group):
-                streams.append(stream_name)
-               
-        return streams
+        # Gather users (ManyToMany through GroupParticipant)
+        users_in_group = list(group.members.all())
+        if creator not in users_in_group:
+            users_in_group.append(creator)
+
+        # bulk_add_subscriptions subscribes EVERY provided user to EVERY provided stream.
+        # Since each group has distinct membership, call it per-group.
+        new_subs, already_subs = bulk_add_subscriptions(
+            realm,
+            [stream_obj],
+            users_in_group,
+            acting_user=creator,
+        )
+        print(
+            f"Stream '{stream_name}': {len(new_subs)} nouveaux abonnements, {len(already_subs)} déjà abonnés."
+        )
+        processed_streams.append(stream_obj)
+        notify_users(i, group.debat.title, group.get_users_emails())
+
+    return processed_streams
+
+"""
+def main() -> None:
+    print("Démarrage de la boucle principale...")
+    while True:
+"""

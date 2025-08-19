@@ -2,7 +2,7 @@ import json
 import os
 import sys
 
-from zerver.lib.diapyr import split_into_group_db, create_streams_for_groups_db, add_users_to_stream_db
+from zerver.lib.diapyr import split_into_group_db, create_streams_for_groups_db_via_api, create_streams_for_groups_db
 
 
 # Set the settings module from your Zulip settings (adjust path if needed)
@@ -22,7 +22,6 @@ from zerver.models.debat import Debat,Participant,Group
 import statistics
 from zerver.models import (
     UserProfile,
-    Group,
 )    
 
 
@@ -124,16 +123,17 @@ class ObjectD:
     def create_streams_for_groups(self, groups: list[list[str]]) -> list[str]:
         #Crée des streams pour chaque groupe et ajoute les utilisateurs.
         print("Ajout des utilisateurs dans les streams existants...")
+        """
         streams = []
         for i, group in enumerate(groups):
-            stream_name = self.name + f"P{self.step} - Groupe {i+1}" #Changer le nom pour plus de clarté
+            stream_name = self.name + f"Tour {self.step} - Groupe {i+1}" #Changer le nom pour plus de clarté
             print(f"Tentative d'ajout dans le stream : {stream_name}")
             if add_users_to_stream(stream_name, group):
                 notify_users(stream_name, group)
                 streams.append(stream_name)
-
-        #create_streams_for_groups_db(Group.objects.filter(debat_id=Debat.objects.get(title=self.name).id), groups)
-        return streams
+        """
+        #result = create_streams_for_groups_db(Group.objects.filter(debat_id=Debat.objects.get(title=self.name).debat_id), self.creator)
+        return create_streams_for_groups_db_via_api(Group.objects.filter(debat_id=Debat.objects.get(title=self.name).debat_id), 124)
 
     def next_step(self):
         users = list(self.subscribers.keys())
