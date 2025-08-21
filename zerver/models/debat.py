@@ -26,7 +26,7 @@ class Debat(models.Model):
     debat_participants = models.ManyToManyField(UserProfile,through='Participant', related_name='participate_at', blank=True)
     max_per_group = models.IntegerField()  # Maximum number of participants per group)
     max_representant = models.IntegerField(null=True, blank=True)
-    time_between_round = models.DateTimeField()
+    time_between_round = models.DurationField(default=timedelta(minutes=5))  # Duration between each round in seconds, default is 60 seconds
     """There are many steps in a debate, and each step has a function in the process.
         Step 1: Phase of subscription, where users can subscribe to the debate.
         Step 2: Phase of decision, where the creator of the debat chose the appropriate parameters of the debates. It could be skipped in future releases.
