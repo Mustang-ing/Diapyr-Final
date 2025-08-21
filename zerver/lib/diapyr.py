@@ -41,8 +41,8 @@ def terminate_diapyr() -> None:
                 debate.save(update_fields=["is_archived"])
                 message = f"Attention, le débat {debate.title} à été stopé avant d'arriver à son terme\n Raison : Arret de l'exécution du script"
                 for group in debate.active_groups:
-                    notify_users(group.group_number, debate.title, group.get_users_emails(), message)
-        
+                    notify_users(group.get_users_emails(), message)
+
         print("Tous les débats actifs ont été archivés.")
         sys.exit(0)
     except Exception as e:
@@ -55,9 +55,9 @@ def signal_handler(signal: int, frame: FrameType):
         terminate_diapyr()
 
 
-def notify_users(stream_name: str, debat_title: str, user_emails: list[str], message : str) -> None:
-    #Notifie les utilisateurs d'un message.
-    print(f"Notification de {user_emails} dans {stream_name}")
+def notify_users(user_emails: list[str], message: str) -> None:
+    # Notifie les utilisateurs d'un message.
+    print(f"Notification pour {user_emails}")
     for email in user_emails:
         message = {
             "type": "private",
@@ -211,10 +211,9 @@ def start_debate_process(debat: Debat) -> None: #N'aurait t'on pas pu faire une 
 
         # Case of termination
         print(f"Débat '{debat.title}' terminé. Plus qu’un seul groupe.")
-        for group in debat.active_groups:
+        for group in debat.all_groups:
             message = f"Le débat '{debat.title}' est terminé. Merci d'avoir participé !"
-            notify_users(group.group_number, debat.title, group.get_users_emails(), message)
-        
+            notify_users(group.get_users_emails(), message)
 
         debat.archive_debat()
         debat.step = 4  # Set step to 4 to indicate the debate is finished
@@ -265,13 +264,14 @@ def create_streams_for_groups_db_via_api(groups: set[Group], bot_user_id: int) -
                 created_streams.append(group.stream)
             else:
                 print(f"Echec API pour {group.group_name}: {result}")
+                raise RuntimeError(f"Echec API pour {group.group_name}: {result}")
         except Exception as e:  # pragma: no cover - defensive
             print(f"Erreur lors de l'ajout des utilisateurs via API : {e}")
             sys.exit(0)
 
-        message = f"Vous avez été affecté au groupe {i} du débat {group.debat.title}."
-        notify_users(i, group.debat.title, group.get_users_emails(), message)
-        i+=1
+        message = f"Vous avez été affecté au groupe {i} du débat {group.debat.title} - Etape : {group.debat.round}."
+        notify_users(group.get_users_emails(), message)
+        i += 1
     return created_streams
 
 
@@ -334,8 +334,8 @@ def create_streams_for_groups_db(groups: set[Group], creator: UserProfile) -> li
             f"Stream '{stream_name}': {len(new_subs)} nouveaux abonnements, {len(already_subs)} déjà abonnés."
         )
         processed_streams.append(stream_obj)
-        message = f"Vous avez été affecté au groupe {i} du débat {group.debat.title}."
-        notify_users(i, group.debat.title, group.get_users_emails(), message)
+        message = f"Vous avez été affecté au groupe {i} du débat {group.debat.title} - Etape : {group.debat.round}"
+        notify_users(group.get_users_emails(), message)
 
     return processed_streams
 
