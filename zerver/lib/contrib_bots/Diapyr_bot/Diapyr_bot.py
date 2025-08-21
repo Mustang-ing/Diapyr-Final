@@ -634,9 +634,11 @@ def create_debat() -> None:
             print(f"Débat créé : {debat.title}")
 
 
+
 #A suppr dans le futur, car on devrait se suffir de la BDD
 def add_user() -> None:
     print("Vérification des utilisateurs à ajouter...")
+    current_time = datetime.now(timezone.utc)
     for debat in Debat.objects.all():
         if debat.debat_created and debat.title in listeDebat and not debat.is_archived:
             print("Vérification des utilisateurs à ajouter au débat : ", debat.title )
@@ -667,7 +669,6 @@ def add_user() -> None:
                             print(f"Utilisateur {user.full_name} non trouvé dans Zulip.")
             else:
                 print(f"Période d'inscription toujours en cours pour '{debat.title}'. Fin prévue à {obj.subscription_end_date}.")
-
 
 def event_listener():
     print("Démarrage de l'écoute des événements...")
