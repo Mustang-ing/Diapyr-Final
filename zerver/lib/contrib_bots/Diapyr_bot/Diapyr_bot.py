@@ -27,6 +27,7 @@ from zerver.models import (
 
 # Configuration du bot
 client = None
+
 # Statistiques pour voir le nb de msg/caracteres envoyés:
 stats_utilisateurs = {}  # email → {"messages": 0, "caracteres": 0}
 messages_consecutifs = {"last_sender": None, "count": 0}
@@ -500,7 +501,7 @@ def check_and_create_channels() -> None:
             if debat_obj.start_date is not None and debat_obj.start_date < datetime.now(timezone.utc):
                 debat_obj.step=3
                 debat_obj.save()
-                obj.update(max_per_group=debat_obj.max_per_group, time_between_steps=timedelta(seconds=int(debat_obj.time_between_round)))
+                obj.update(max_per_group=debat_obj.max_per_group, time_between_steps=debat_obj.time_between_round)
                 groups = obj.split_into_groups()
                 if groups == []:
                     print(f"Création de débat imposible pour l'objet D '{name}'. Il n'a pas de participants ou le nombre maximal de participants par groupe est 0.")
@@ -565,51 +566,39 @@ def add_user() -> None:
                         print(f"Ajout de l'utilisateur : {user.full_name} avec l'email {user.email}")
                         if user.email is not None:
                             obj.add_subscriber(user.email, {"name": user.full_name})
-                            participant.register_to()
+                            participant.is_registered_to_a_debate = True
+                            participant.save()
                         else:
                             print(f"Utilisateur {user.full_name} non trouvé dans Zulip.")
             else:
                 print(f"Période d'inscription toujours en cours pour '{debat.title}'. Fin prévue à {obj.subscription_end_date}.")
 
 def main_loop() -> None:
-
-    # Ask the user for an integer input (for demonstration purposes)
-    try:
-        user_input = int(input("Choose the mode of execution (1: Classical, 2: New (Database)): "))
-        print(f"You entered: {user_input}")
-    except Exception as e:
-        print(f"Invalid input: {e}")
-        return
     #Boucle principale du bot.
     print("Démarrage de la boucle principale...")
     i=0 #Utilité ?
     #get_client()  
-    if user_input == 1:
-        while True:
-            #print(client.get_members())
-            #print(members)
-            #On génére les debats qui n'ont pas encore été génére depuis la table debat
-            create_debat()
-            #On ajoute les utilisateurs qui ne sont pas encore inscrits
-            #print(listeDebat)
-            add_user()
-            # Vérifie si la période d'sinscription est terminée et crée les channels si nécessaire
-            check_and_create_channels()
-
-        
-
-            #print(get_all_zulip_user_emails())
-            
-            #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
-            #print(f"Affichager de la base de donnée : {Debat.objects.all()}")
-
-            # Attend quelques secondes avant de recommencer
-            time.sleep(10)  # Attendre 10 secondes
-            i+=1
-    
-    elif user_input == 2:
-        main_db()
-
-if __name__ == "__main__":
     threading.Thread(target=message_listener).start()
-    main_loop()
+   
+    while True:
+        #print(client.get_members())
+        #print(members)
+        #On génére les debats qui n'ont pas encore été génére depuis la table debat
+        create_debat()
+        #On ajoute les utilisateurs qui ne sont pas encore inscrits
+        #print(listeDebat)
+        add_user()
+        # Vérifie si la période d'sinscription est terminée et crée les channels si nécessaire
+        check_and_create_channels()
+
+    
+
+        #print(get_all_zulip_user_emails())
+        
+        #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
+        #print(f"Affichager de la base de donnée : {Debat.objects.all()}")
+
+        # Attend quelques secondes avant de recommencer
+        time.sleep(10)  # Attendre 10 secondes
+        i+=1
+

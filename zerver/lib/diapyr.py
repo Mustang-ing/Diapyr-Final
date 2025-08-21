@@ -6,6 +6,7 @@ from types import FrameType
 from django.db import transaction
 import zulip
 from zerver.actions.streams import bulk_add_subscriptions
+from zerver.lib.moderate_debat import message_listener
 from zerver.lib.streams import list_to_streams
 from zerver.models import UserProfile, Stream
 from zerver.models.debat import (
@@ -373,6 +374,7 @@ def check_and_create_channels() -> None:
 
 def main_db() -> None:
     print("Démarrage de la boucle principale...")
+    threading.Thread(target=message_listener).start()
     while True:
         check_and_create_channels()
         signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C gracefully
@@ -382,4 +384,5 @@ def main_db() -> None:
                 t.join(timeout=5)
         """
         time.sleep(5)  # Attendre 5 secondes avant de vérifier à nouveau
+        
 
