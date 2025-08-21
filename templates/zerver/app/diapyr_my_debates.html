@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+	<link rel="stylesheet" href="{{ static('styles/interface_user.css') }}">
+</head>
+{% extends "zerver/diapyr_base.html" %}
+
+{% block content %}
+<main>
+    <div class="Main-link">
+        <h2> Liste de mes débats</h2><br>
+        <ul class="debate-list">
+            {% if (my_debates|length) == 0 %}
+                <p>Vous n'avez pas encore créé de débat.</p>
+            {% endif %}
+            {% for deb in my_debates %}
+                <li class="debate-item">
+                        <strong>{{ deb.title }} - </strong>
+                        Description: {{ deb.description }}
+                        Date de fin d'inscription : {{ deb.subscription_end_date.strftime('%d/%m/%Y %H:%M') }}
+                        <div class="debate-actions">
+                            {% if deb.step == 1 %}
+                                <span class="status">En attente de participants</span>
+                            {% elif deb.step == 2 %}
+                                <button class="status-modify"><a class="link-debate" href="/diapyr_my_debates/{{ deb.debat_id }}/">Choisissez vos paramètres </a></button>
+                            {% elif deb.step == 3 %}
+                                <span class="status">Débat en cours</span>
+                            {% endif %}
+                        </div>
+                        
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div class="Main-link">
+        <h2> Liste des débats auxquels vous participez</h2><br>
+        <ul class="debate-list">
+            {% if (joined_debates_v2|length) == 0 %}
+                <p>Vous ne participez à aucun débat.</p>
+            {% endif %}
+            {% for deb in joined_debates_v2 %}
+                <li class="debate-item">
+                        <strong>{{ deb.title }} - </strong>
+                        Description: {{ deb.description }}
+                        Date de fin d'inscription : {{ deb.subscription_end_date.strftime('%d/%m/%Y %H:%M') }}
+                </li>
+            {% endfor %}
+        </ul>
+    </div>
+</main>
+{% endblock content %}

@@ -501,7 +501,7 @@ class UserProfile(AbstractBaseUser, PermissionsMixin, UserBaseSettings):
     #
     # See also `long_term_idle`.
     is_active = models.BooleanField(default=True, db_index=True)
-
+    is_register = models.BooleanField(default=False, db_index=True)
     is_bot = models.BooleanField(default=False, db_index=True)
     bot_type = models.PositiveSmallIntegerField(null=True, db_index=True)
     bot_owner = models.ForeignKey("self", null=True, on_delete=models.SET_NULL)
@@ -669,7 +669,7 @@ class UserProfile(AbstractBaseUser, PermissionsMixin, UserBaseSettings):
 
     @override
     def __str__(self) -> str:
-        return f"{self.email} {self.realm!r}"
+        return f"{self.email} {self.realm!r} {self.full_name!r}"
 
     def get_role_name(self) -> str:
         return str(self.ROLE_ID_TO_NAME_MAP[self.role])

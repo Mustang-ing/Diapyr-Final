@@ -1,0 +1,111 @@
+<head>
+    <link rel="stylesheet" href="{{ static('styles/debat_detail.css') }}">
+</head>
+{% extends "zerver/diapyr_base.html" %}
+
+
+{% block content %}
+
+
+<h1 class="debat-detail-title"> {{ debat.title }}</h2>
+
+<div class="debat-detail-main">
+    <div class="debat-detail-options">
+        <button type="button" class="btn" id="btn-primary" >Informations du débat</button>
+        <button type="button" class="btn" id="btn-secondary">Participants</button>
+        <button type="button" class="btn" id="btn-third">Choisir les paramètres de la phase 2</button>
+    </div>
+
+    <div class="debat-detail-output">
+        <div class="debat-detail-info">
+            <h2>Informations du débat</h2>
+            <p>Description : {{ debat.description }}</p>
+            <p>Date de fin d'inscription : {{ debat.subscription_end_date.strftime('%d/%m/%Y %H:%M') }}</p>
+            <p>Date de début du débat : {{ debat.start_date.strftime('%d/%m/%Y %H:%M') }}</p>
+        </div>
+        <div class="debat-detail-participants">   
+            <h2 class="participant-title">Participants :</h2>
+            <table class="participant-list">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Représentant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for participant in participants %}
+                        <tr>
+                            <td>{{ participant.full_name }}</td>
+                            <td>
+                                {% if participant.is_representative %}
+                                    Oui
+                                {% else %}
+                                    Non
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="2">Aucun participant pour ce débat.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="debat-detail-params">
+            <div class="debat-detail">
+                <div class="debat-detail-text">
+                    <h2>Phase 2 du débat</h2>
+                    <p> Durant cette phase, vous allez pouvoir ajuster les paramètres du débat en fonction du nombre de participants qui ont rejoint le débat.</p>
+                    <p> Attention, si aucune action de votre part n'est effectuée, le débat démarera 30 minutes après la phase d'inscription</p>
+                </div>
+                <p>Vous pouvez choisir les paramètres suivants :</p>
+                <!-- Dans l'ideal, il faudrait envoyer le formulaire a action="diapyr/debat/update/phase2/{{ debat.id }}" -->
+                <form id="params-form" method="post" action="">
+                    {{ csrf_input }}
+                    <label for="param1">Date de début du débat :</label>
+                    <input type="date" id="param1" name="start_date" required>
+                    <input type="time" id="param1_time" name="start_time" required>
+                    <label for="param2">Nombre de personne par groupe:</label>
+                    <input type="number" id="param2" name="max_per_group" required>
+                    <label for="param3">Nombre de représentant par groupe:</label>
+                    <input type="number" id="param3" name="nb_rep_per_grp" required>
+                    <label for="param4">Temps par tour (en minutes):</label>
+                    <input type="number" id="param4" name="time_between_round" required>
+                    <button type="submit">Enregistrer les paramètres</button>
+                </form>
+            </div>
+            <div class="debat-info-list">
+                <h3> Informations de la phase 2</h3>
+                <ul class="debat-info-list">
+                    {% if result %}
+                        <li>Nombre de participants inscrit: <strong>{{ nb_participants }}</strong></li>
+                        <li>Nombre de groupe : {{ result["nb_groups"] }}</li>
+                        <li>Nombre de tours : {{ result["num_rounds"] }}</li>
+                        <li>Durée du débat en minutes : {{ result["estimated_duration"] }}</li>
+
+                    {% else %}
+                        <li>Nombre de participants inscrit: <strong>{{ nb_participants }}</strong></li>
+                    {% endif %}
+                    <!-- Trouver un moyen pour afficher la répartition des utilisateurs-->
+                </ul>
+
+                {% if result %}
+                    <h4> Composition des groupes au 1er tours :</h4>
+                    <p> Il y a {% for key, value in result["initial_groups"].items() %}{{ value }} groupe(s) de {{ key }} participant(s){% if not loop.last %}, {% endif %}{% endfor %}.</p>
+                    <button  id="debat-params-validate">  Valider les paramètres</button>
+                {% endif %}
+            </div>
+            
+        </div>
+    </div>
+</div>
+{% if request.user.is_authenticated %}
+    <div class="Main-link">
+        <a href="{{ url('diapyr_my_debates') }}">Retour à la liste de mes débats</a>
+    </div>
+{% endif %}
+
+<script src="{{ static('script/debat_detail.js')}}"></script>
+
+{% endblock content %}

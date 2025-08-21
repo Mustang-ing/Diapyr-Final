@@ -42,3 +42,38 @@ button {
     background: #2196F3;
     margin-left: 10px;
 }
+
+.formulaire-contenu {
+    padding: 10px;
+    font-family: Arial, sans-serif;
+}
+
+.formulaire-contenu label {
+    display: block;
+    margin-top: 8px;
+    font-weight: bold;
+}
+
+.formulaire-contenu input,
+.formulaire-contenu select,
+.formulaire-contenu textarea {
+    width: 100%;
+    padding: 6px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.formulaire-contenu button {
+    margin-top: 15px;
+    background-color: #337ab7;
+    color: white;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.formulaire-contenu button:hover {
+    background-color: #23527c;
+}

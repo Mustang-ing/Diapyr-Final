@@ -1,3 +1,5 @@
+from django.shortcuts import redirect, render
+
 import logging
 from collections import Counter
 from datetime import datetime, timedelta, timezone
@@ -94,6 +96,47 @@ from zilencer.models import (
     RemoteZulipServer,
     RemoteZulipServerAuditLog,
 )
+
+from django.views.decorators.csrf import csrf_protect
+from django.template import engines
+from django.http import HttpResponse
+from zerver.models.debat import Debat
+
+@csrf_protect
+def formulaire_debat_view(request):
+    if request.method == "POST":
+        title = request.POST.get('nom', '').strip()
+        description = request.POST.get('description', '').strip()
+        end_date_str = request.POST.get('Date_fin', '').strip()
+        creator_email = request.POST.get('email', '').strip()
+        max_per_group = int(request.POST.get('nb_max', 0))
+        time_between_round = int(request.POST.get('time_step', 0))
+        num_pass = int(request.POST.get('step', 0))
+
+        if not title or not end_date_str or not creator_email or max_per_group <= 0 or time_between_round <= 0 or num_pass <= 0:
+            return HttpResponse("Invalid form data. Please fill out all fields correctly.", status=400)
+
+        end_date = datetime.now() + timedelta(minutes=int(end_date_str))
+        # Initialisation d'un objet debat.
+        Debat.objects.create(
+            title=title,
+            description=description,
+            end_date=end_date,
+            creator_email=creator_email,
+            max_per_group=max_per_group,
+            time_between_round=time_between_round,
+            num_pass=num_pass
+        )
+        return redirect('diapyr_home')  # Redirect to diapyr_home after successful form submission
+
+    django_engine = engines['Django']
+    template = django_engine.get_template("zilencer/formulaire_debat.html")
+    return HttpResponse(template.render({}, request))
+
+
+def join_debat_view(request):
+    return render(request, 'zilencer/join_debat.html')
+
 
 logger = logging.getLogger(__name__)
 
@@ -1620,3 +1663,5 @@ def remote_server_check_analytics(request: HttpRequest, server: RemoteZulipServe
         "last_realmauditlog_id": get_last_id_from_server(server, RemoteRealmAuditLog),
     }
     return json_success(request, data=result)
+
+

@@ -1,5 +1,7 @@
 import os
 
+
+
 from django.conf import settings
 from django.conf.urls import include
 from django.conf.urls.i18n import i18n_patterns
@@ -250,7 +252,21 @@ from zerver.views.video_calls import (
 
 from zerver.views.zephyr import webathena_kerberos_login
 from zproject import dev_urls
-from zerver.views.diapyr import formulaire_debat,diapyr_home,diapyr_join_debat
+from zerver.views.diapyr import(
+     diapyr_join_debat,
+     formulaire_debat,
+     diapyr_home,
+     show_debates,
+     show_debates_detail,
+)
+from zerver.views.subscribe_debat import(
+    subscribe_user_to_debat,
+)
+
+from zerver.views.diapyr_update_debat_phase2 import (
+    diapyr_update_debat_phase2,
+)
+
 
 
 if settings.TWO_FACTOR_AUTHENTICATION_ENABLED:  # nocoverage
@@ -546,6 +562,10 @@ v1_api_and_json_patterns = [
     rest_path("export/realm", POST=export_realm, GET=get_realm_exports),
     rest_path("export/realm/<int:export_id>", DELETE=delete_realm_export),
     rest_path("export/realm/consents", GET=get_users_export_consents),
+    # Diapyr_alt integration
+    rest_path("diapyr/subscribe/debat", POST=subscribe_user_to_debat),
+    rest_path("diapyr/debat/update/phase2/<int:debat_id>/", POST=diapyr_update_debat_phase2),
+    #rest_path("diapyr/debat/update/phase2/<int:debat_id>/validate", POST=diapyr_join_debat),
 ]
 
 integrations_view = IntegrationView.as_view()
@@ -661,9 +681,17 @@ i18n_urls = [
     path("integrations/doc-html/<integration_name>", integration_doc),
     path("integrations/", integrations_view),
     path("integrations/<path:path>", integrations_view),
-    path("diapyr_debat/",formulaire_debat,name="diapyr_debat_form"),
+    # Diapyr specific URLs
+    path("diapyr_create_debat/",formulaire_debat,name="diapyr_debat_form"),
     path("diapyr_home/",diapyr_home,name="diapyr_home"),
     path("diapyr_join_debat/",diapyr_join_debat,name="diapyr_join_debat"),
+    path("diapyr_my_debates/",show_debates,name="diapyr_my_debates"),
+    path("diapyr_my_debates/<int:debat_id>/",show_debates_detail,name="diapyr_debate_detail"),
+
+   
+    #path("formulaire/", formulaire_debat_view, name="formulaire"),
+    #path("join/", join_debat_view, name="join"),
+
 ]
 
 # Make a copy of i18n_urls so that they appear without prefix for english
@@ -924,3 +952,4 @@ urls += [path("health", health)]
 # reverse URL mapping points to i18n URLs which causes the frontend
 # tests to fail
 urlpatterns = i18n_patterns(*i18n_urls) + urls
+

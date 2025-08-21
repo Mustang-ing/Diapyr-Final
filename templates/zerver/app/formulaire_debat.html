@@ -3,107 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <title>Inscription au Débat</title>
+
     <link rel="stylesheet" type="text/css" href="{{ static('styles/formulaire_debat.css') }}">
 </head>
 <body>
     <h1>Créer un débat</h1>
     
-    <h2> Vos informations personnelles </h2>
-    <form action="" method="POST" id="debateForm">
-        <!-- Les champs du formulaire restent identiques -->
-        <div class="form-group">
-            <label>Genre:</label>
-            <select id="gender" required>
-                <option value="">-- Sélectionnez --</option>
-                <option value="homme">Homme</option>
-                <option value="femme">Femme</option>
-                <option value="autre">Autre</option>
-            </select>
-        </div>
+    <form method="POST" action="{{( url ('diapyr_debat_form'))}}">
 
-        <div class="form-group">
-            <label>Pays:</label>
-            <select id="country" required>
-                <option value="">-- Sélectionnez --</option>
-		<option value="FR">France</option>
-		<option value="BE">Belgique</option>
-		<option value="CA">Canada</option>
-		<option value="CH">Suisse</option>
-		<option value="DE">Allemagne</option>
-		<option value="ES">Espagne</option>
-		<option value="IT">Italie</option>
-		<option value="GB">Royaume-Uni</option>
-		<option value="US">États-Unis</option>
-		<option value="JP">Japon</option>
-		<option value="CN">Chine</option>
-		<option value="BR">Brésil</option>
-		<option value="IN">Inde</option>
-		<option value="AU">Australie</option>
-		<option value="MX">Mexique</option>
-		<option value="NL">Pays-Bas</option>
-		<option value="SE">Suède</option>
-		<option value="NO">Norvège</option>
-		<option value="DK">Danemark</option>
-		<option value="PT">Portugal</option>
-		<option value="GR">Grèce</option>
-		<option value="RU">Russie</option>
-		<option value="ZA">Afrique du Sud</option>
-		<option value="AR">Argentine</option>
-		<option value="KR">Corée du Sud</option>
-		<option value="SG">Singapour</option>
-		<option value="NZ">Nouvelle-Zélande</option>
-		<option value="AE">Émirats Arabes Unis</option>
-            </select>
-        </div>
-
+       
         <h2> Information du débat </h2>
 
         <div class="form-group">
-        <label for="nom">Nom du debat</label>
-		<input type="nom" name="nom" id="nom_debat" placeholder="Nom du debat">
+            <label for="nom">Nom du débat</label>
+            <input type="text" name="nom" id="nom_debat" placeholder="Nom du débat">
         </div>  
 
         <div class="form-group">
-        <label for="email">Email</label>
-		<input type="email" name="email" id="email" placeholder="Votre email">
-        </div>
-
-        <div class="form-group">
-            <label for="nb_max">Nombre de participant maximal dans un groupe</label>
+            <label for="nb_max">Nombre de participants maximal dans un groupe</label>
             <input type="text" id="nb_max" name="nb_max" required>
         </div>
 
         <div class="form-group">
-
-        <label for="Date_fin">Temps en minutes avant le début du débat</label>
-        <input type="text" name="Date_fin" id="Date_fin" placeholder="Temps en minutes avant le début du débat">
+            <label for="Date_fin">Temps en minutes avant le début du débat</label>
+            <input type="text" name="Date_fin" id="Date_fin" placeholder="Temps avant début">
         </div>
 
         <div class="form-group">
-            <label for="time_step">Temps entre les phases</label>
+            <label for="time_step">Durée des phases</label>
             <input type="text" id="time_step" name="time_step" required>
         </div>
 
-        <div class="form-group">
-            <label for="step">Nombre de passes</label>
-            <input type="text" id="step" name="step" required>
+         <!-- Critères personnalisés facultatifs 
+            <div class="form-group criteres">
+            <h3>Critères personnalisés (facultatif)</h3>
+            <label><input type="checkbox" name="criteres[]" value="age"> Âge</label>
+            <label><input type="checkbox" name="criteres[]" value="profession"> Profession</label>
+            <label><input type="checkbox" name="criteres[]" value="etudes"> Niveau d’études</label>
+            <label><input type="checkbox" name="criteres[]" value="domaine"> Domaine</label>
+            <label><input type="checkbox" name="criteres[]" value="experience"> Expérience en débat</label>
         </div>
+        -->
 
-        
         <div class="form-group">
             <label for="description">Description du débat</label>
-            <textarea type="text" id="description" name="description" rows="4" cols="50" placeholder="Décrivez le sujet du débat ici..."></textarea>
+            <textarea id="description" name="description" rows="4" cols="50" placeholder="Décrivez le sujet du débat ici..."></textarea>
         </div>
 
-        <button type="submit">Créer le debat</button>
-
+        <button type="submit">Créer le débat</button>
     </form>
 
-
-
-    
-
-    <!-- <script src="{{ static('script/formulaire_debat.js') }}"></script> 
-     Le script n'est pas essentielle, il ne fait qu'envoyer les infos au serveur-->
 </body>
 </html>
