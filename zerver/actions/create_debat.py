@@ -20,13 +20,20 @@ def do_create_debat(title: str,
     
     #Il faudrait ajouter d'autre contrôle sur les valeur, mais pour l'instant c'est géré par la vue.
 
+    diapyr_bot = UserProfile.objects.get(
+        email="potobot-bot@zulipdev.com",  # Replace with the actual bot email, should be diapyr-bot@zulipdev.com
+        is_bot = True
+    )
+
+
     debat = Debat(
         title=title,
         description=description,
         subscription_end_date=end_date,
         creator=creator,
         max_per_group=max_per_group,
-        time_between_round=time_between_round,
-        start_date=end_date + timedelta(minutes=30)
+        time_between_round= timedelta(seconds=time_between_round),
+        start_date=end_date + timedelta(minutes=30),
+        diapyr_bot=diapyr_bot 
     )
     debat.save()

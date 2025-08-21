@@ -26,30 +26,91 @@ class Debat(models.Model):
     debat_participants = models.ManyToManyField(UserProfile,through='Participant', related_name='participate_at', blank=True)
     max_per_group = models.IntegerField()  # Maximum number of participants per group)
     max_representant = models.IntegerField(null=True, blank=True)
-    subscription_end_date = models.DateTimeField()
-    start_date = models.DateTimeField(null=True, blank=True, default=None)  # Date when the debate starts
-    time_between_round = models.IntegerField()
+    time_between_round = models.DateTimeField()
     """There are many steps in a debate, and each step has a function in the process.
         Step 1: Phase of subscription, where users can subscribe to the debate.
         Step 2: Phase of decision, where the creator of the debat chose the appropriate parameters of the debates. It could be skipped in future releases.
         Step 3-n: Phase of the debate, where users can discuss and vote for the representative of their group. We have a new step when each debate session is finished and vote occurs.
     """ 
     step = models.IntegerField(default=1)
-    description = models.TextField(null=True, blank=True, default="")
+
+    """ According to the step, there are many important date
+        creation_date : Which indicates when the debates has been created (Trivial)
+        subscription_end_date : Indicates when the period of subscription for user is over (Step 1 -> Step 2). 
+        start_date : It's the date where the debate starts, after the decision time (Step 2 -> Step 3). This date could be set to datime.now() when the skip process will be developped.
+
+    """
+    subscription_end_date = models.DateTimeField()
+    start_date = models.DateTimeField(null=True, blank=True, default=None)  # Date when the debate starts
     creation_date = models.DateTimeField(default=timezone.now) 
+    # A round is number of the debate session
+    round = models.IntegerField(default=1)
+    type = models.CharField(max_length=100, choices=Debate_Kind.choices,null=True, default=Debate_Kind.General)
+    # In the use of API Zulip, we need to now which bot is used for the API functions
+    diapyr_bot = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='diapyr_bot', null=True, blank=True, default=None)
+    description = models.TextField(null=True, blank=True, default="")
     debat_created = models.BooleanField(default=False) # A terme, il faudrait plutôt utiliser step pour savoir si le débat à démarré ou pas.
     is_archived = models.BooleanField(default=False, null=True)
     is_validated = models.BooleanField(default=False, null=True)  # Indicates if the debate parameters are validated by the creator
-    type = models.CharField(max_length=100, choices=Debate_Kind.choices,null=True, default=Debate_Kind.General)
+    skip_pre_registration = models.BooleanField(default=False, null=True)  # Skip the pre-registration phase a.k.a phase 2, if the user chose default parameters
+ 
     #criteres = ArrayField(models.CharField(max_length=50), default=list, blank=True, null=True)
 
     def __str__(self):
         return self.title
     
-    def get_participants(self):
+
+    def set_default_parameters(self) -> None:
+        """Set default parameters for the debate."""
+        self.max_per_group = 5
+        self.max_representant = 2
+        self.time_between_round = 60
+        self.subscription_end_date = self.creation_date
+        self.skip_pre_registration = True
+        self.save()
+
+    def archive_debat(self) -> None:
+        """Set the debate to archived."""
+        self.is_archived = True
+        self.save()
+        print(f"Le débat '{self.title}' a été archivé.")
+
+    # --- Convenience properties (preferred over old get_* methods) ---
+
+    @property
+    def participants(self) -> list[UserProfile]:
         """Return a list of participants in the debate."""
-        return self.debat_participants.all()
+        return list(self.debat_participants.all())
     
+    @property
+    def active_participants(self) -> list[UserProfile]:
+        """Return a list of active participants in the debate."""
+        return list(self.debat_participant.filter(is_active_in_diapyr=True))
+    
+    @property
+    def bot_email(self) -> str | None:
+        """Email of the debate's bot, or None if not set."""
+        return self.diapyr_bot.email if self.diapyr_bot else None
+
+    @property
+    def bot_id(self) -> int | None:
+        """User id of the debate's bot, or None if not set."""
+        # Use implicit <field>_id attribute to avoid extra DB fetch.
+        return self.diapyr_bot_id if self.diapyr_bot_id else None
+
+    @property
+    def all_groups(self):  # QuerySet[Group]
+        """QuerySet of all groups in this debate."""
+        return self.groups.all()
+    @property
+    def active_groups(self):
+        return self.groups.filter(is_archived=False)
+
+    @property
+    def group_count(self) -> int:
+        """Number of groups in this debate."""
+        return self.groups.count()
+
 
 def check_subscription_end_date(debat: Debat) -> bool:
     """
@@ -65,7 +126,14 @@ def check_user_already_participant(debat: Debat, user_profile: UserProfile) -> b
     """
     return debat.debat_participant.filter(user_id=user_profile).exists()
 
-
+def archived_all_groups(debat: Debat) -> None:
+    """
+    Archive all groups in the debate.
+    """
+    for group in debat.all_groups:
+        group.stream.is_archived = True
+        group.stream.save()
+    print(f"Tous les groupes du débat '{debat.title}' ont été archivés.")
 
 class Participant(models.Model):
 
@@ -75,9 +143,10 @@ class Participant(models.Model):
     debat = models.ForeignKey(Debat, on_delete=models.CASCADE,related_name='debat_participant')
     #Those field we're moved out UserProfile because there are specific to a participation on a debate and not to a user (Who can participate at multiple debates)
     is_registered_to_a_debate = models.BooleanField(null=True, default=False)
-    is_active_in_diapyr = models.BooleanField(null=True, default=False)
+    # A participant is considered active while he hasn't been eliminated to the next phase
+    is_active_in_diapyr = models.BooleanField(null=True, default=True)
     is_representative = models.BooleanField(null=True, default=False)
-    current_tour = models.IntegerField(null=True, default=None)
+    current_tour = models.IntegerField(null=True, default=1)
     
     #The class Meta is used to add a constraint to ensure the couple (user,debat) is unique 
     class Meta:
@@ -88,12 +157,12 @@ class Participant(models.Model):
 
     def __str__(self):
         return f"Participant {self.user.full_name} in Debate {self.debat.title}"
+    
+    @property
+    def name(self):
+        """Return the full name of the participant."""
+        return self.user.full_name if self.user else "Unknown User"
 
-
-    def register_to(self) -> None:
-        """Register the user to the debate."""
-        self.is_registered_to_a_debate = True
-        self.save()
 
 
 class Group(models.Model):
@@ -104,17 +173,19 @@ class Group(models.Model):
     debat = models.ForeignKey(Debat, on_delete=models.CASCADE, related_name='groups')
     stream = models.OneToOneField(Stream, on_delete=models.CASCADE, related_name='group', null=True, blank=True) 
     group_name = models.CharField(max_length=100, null=True, blank=True)  # Optional name for the group
-    phase = models.IntegerField(default=1)  # Phase of the debate
+    group_number = models.IntegerField(null=True,default=1)
+    round = models.IntegerField(default=1)  # Phase of the debate
     created_at = models.DateTimeField(auto_now_add=True)
     members = models.ManyToManyField(UserProfile, through='GroupParticipant', related_name='group_participants')
+    is_archived = models.BooleanField(default=False, null=True)  # Indicates if the group is archived
 
     def __str__(self):
-        return f"Group {self.id} for Debate {self.debat.title} (Phase {self.phase})"
-    
+        return f"Group {self.id} for Debate {self.debat.title} (Round {self.round})"
+
     def get_users_id(self):
         """Return a list of user IDs in the group."""
-        return [id for id in self.members.values_list('id', flat=True) ]
-    
+        return [id for id in self.members.values_list('id', flat=True)]
+
     def get_users_emails(self):
         """Return a list of user emails in the group."""
         return [email for email in self.members.values_list('email', flat=True)]

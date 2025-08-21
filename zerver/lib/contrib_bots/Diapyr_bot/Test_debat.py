@@ -48,9 +48,9 @@ def main():
         title=f"TestDebate - Beta3 {num} ",
         creator=UserProfile.objects.get(id=157),  # Assuming the creator is the first user
         max_per_group=max_per_group,
-        subscription_end_date=datetime.now() + timedelta(seconds=1),
-        time_between_round=time_between_steps,
-        start_date=datetime.now() + ( timedelta(minutes=30) if mode == 2 else timedelta(seconds=1) ),  # Set start date to 30 minutes later for pre-registration mode
+        subscription_end_date=(datetime.now() + timedelta(seconds=1)).isoformat(),
+        time_between_round=str(time_between_steps),
+        start_date=(datetime.now() + ( timedelta(minutes=30) if mode == 2 else timedelta(seconds=1) )).isoformat(),  # Set start date to 30 minutes later for pre-registration mode
         step = (1 if mode == 2 else 1),  # Step 1 for pre-registration mode, Step 2 for quick mode
         description="This is a test debate")
     

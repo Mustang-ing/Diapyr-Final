@@ -28,7 +28,7 @@ def diapyr_update_debat_phase2(
     try: 
         debat = Debat.objects.get(debat_id=debat_id)
          # Get participants in the debate
-        participants = debat.get_participants()
+        participants = debat.participants
         nb_participants = participants.count()
         print(f"Nombre de participants : {nb_participants}")
 

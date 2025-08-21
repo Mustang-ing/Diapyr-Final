@@ -128,7 +128,7 @@ def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
     try:
         debat = Debat.objects.get(debat_id=debat_id)
         # Get participants in the debate
-        participants = debat.get_participants()
+        participants = debat.participants
         nb_participants = participants.count()
         print(f"Nombre de participants : {nb_participants}")
         

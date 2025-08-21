@@ -2,7 +2,7 @@ import json
 import os
 import sys
 
-from zerver.lib.diapyr import split_into_group_db, create_streams_for_groups_db_via_api, create_streams_for_groups_db
+from zerver.lib.diapyr import main_db, split_into_group_db, create_streams_for_groups_db_via_api, create_streams_for_groups_db
 
 
 # Set the settings module from your Zulip settings (adjust path if needed)
@@ -114,7 +114,7 @@ class ObjectD:
 
         #Methode avec la base de donné : 
 
-        split_into_group_db(Debat.objects.get(title=self.name), self.max_per_group)
+        #split_into_group_db(Debat.objects.get(title=self.name), self.max_per_group)
         return groups
             
 
@@ -123,7 +123,7 @@ class ObjectD:
     def create_streams_for_groups(self, groups: list[list[str]]) -> list[str]:
         #Crée des streams pour chaque groupe et ajoute les utilisateurs.
         print("Ajout des utilisateurs dans les streams existants...")
-        """
+        
         streams = []
         for i, group in enumerate(groups):
             stream_name = self.name + f"Tour {self.step} - Groupe {i+1}" #Changer le nom pour plus de clarté
@@ -131,9 +131,12 @@ class ObjectD:
             if add_users_to_stream(stream_name, group):
                 notify_users(stream_name, group)
                 streams.append(stream_name)
-        """
-        #result = create_streams_for_groups_db(Group.objects.filter(debat_id=Debat.objects.get(title=self.name).debat_id), self.creator)
-        return create_streams_for_groups_db_via_api(Group.objects.filter(debat_id=Debat.objects.get(title=self.name).debat_id), 124)
+        
+        #result1 = create_streams_for_groups_db(Group.objects.filter(debat_id=Debat.objects.get(title=self.name).debat_id), self.creator)
+        #result2 = create_streams_for_groups_db_via_api(Group.objects.filter(debat_id=Debat.objects.get(title=self.name).debat_id), 124)
+        
+        return streams
+    
 
     def next_step(self):
         users = list(self.subscribers.keys())
@@ -569,34 +572,43 @@ def add_user() -> None:
                 print(f"Période d'inscription toujours en cours pour '{debat.title}'. Fin prévue à {obj.subscription_end_date}.")
 
 def main_loop() -> None:
+
+    # Ask the user for an integer input (for demonstration purposes)
+    try:
+        user_input = int(input("Choose the mode of execution (1: Classical, 2: New (Database)): "))
+        print(f"You entered: {user_input}")
+    except Exception as e:
+        print(f"Invalid input: {e}")
+        return
     #Boucle principale du bot.
     print("Démarrage de la boucle principale...")
     i=0 #Utilité ?
     #get_client()  
-    while True:
+    if user_input == 1:
+        while True:
+            #print(client.get_members())
+            #print(members)
+            #On génére les debats qui n'ont pas encore été génére depuis la table debat
+            create_debat()
+            #On ajoute les utilisateurs qui ne sont pas encore inscrits
+            #print(listeDebat)
+            add_user()
+            # Vérifie si la période d'sinscription est terminée et crée les channels si nécessaire
+            check_and_create_channels()
 
-        #print(client.get_members())
-         #print(members)
-        #On génére les debats qui n'ont pas encore été génére depuis la table debat
-        create_debat()
-        #On ajoute les utilisateurs qui ne sont pas encore inscrits
-        #print(listeDebat)
-        add_user()
-        # Vérifie si la période d'sinscription est terminée et crée les channels si nécessaire
-        check_and_create_channels()
-
-       
-
-        #print(get_all_zulip_user_emails())
         
-        #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
-        #print(f"Affichager de la base de donnée : {Debat.objects.all()}")
 
-        # Attend quelques secondes avant de recommencer
-        time.sleep(10)  # Attendre 10 secondes
-        
-        
-        i+=1
+            #print(get_all_zulip_user_emails())
+            
+            #print(f"Affichage d'object.\n Object_D : {objects_D}\n Nombre d'object : {len(objects_D)}\n")
+            #print(f"Affichager de la base de donnée : {Debat.objects.all()}")
+
+            # Attend quelques secondes avant de recommencer
+            time.sleep(10)  # Attendre 10 secondes
+            i+=1
+    
+    elif user_input == 2:
+        main_db()
 
 if __name__ == "__main__":
     threading.Thread(target=message_listener).start()

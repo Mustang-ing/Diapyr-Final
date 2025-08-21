@@ -120,7 +120,7 @@ def get_composition_groups(groups: list[list[UserProfile]]) -> dict[int: int , i
 def phase2_preparation(debat: Debat, max_per_group: int, time_between_round: int, max_representant: int) -> dict[ str:list[list[UserProfile]] , str:int , str:int]:
     
     #Firstly, we are going to check if the max_per_group is coherent with the number of participants.
-    participants = debat.get_participants()
+    participants = debat.participants
     if participants is None or len(participants) == 0:
         raise ValueError("No participants found in the debate. Wait for participants before proceeding.")
     groups = split_into_groups(participants, max_per_group)
