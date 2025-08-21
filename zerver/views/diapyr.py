@@ -129,9 +129,8 @@ def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
         debat = Debat.objects.get(debat_id=debat_id)
         # Get participants in the debate
         participants = debat.participants
-        nb_participants = participants.count()
-        print(f"Nombre de participants : {nb_participants}")
-        
+        print(f"Nombre de participants : {len(participants)}")
+
     except Debat.DoesNotExist:
         return HttpResponse("Debate not found.", status=404)
 
@@ -168,7 +167,7 @@ def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
             
             # Update the debate with the new parameters
             debat.max_per_group = max_per_group
-            debat.time_between_round = time_between_round
+            debat.time_between_round = timedelta(seconds=time_between_round)
             debat.max_representant = max_representant
             debat.start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M") - timedelta(hours=2) # Set start date substract 2 hours because of the stupid bug of Windows
             debat.save()
@@ -179,7 +178,7 @@ def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
             return render(request,'zerver/app/diapyr_debate_detail.html', {
                     'debat': debat,
                     'participants': participants,
-                    'nb_participants': nb_participants,
+                    'nb_participants': len(participants),
                     'result': result,
                     'message': f"Debate {debat.title} updated successfully"
                 })
@@ -191,7 +190,7 @@ def show_debates_detail(request: HttpRequest, debat_id: int) -> HttpResponse:
         return render(request, 'zerver/app/diapyr_debate_detail.html', {
             'debat': debat,
             'participants': participants,
-            'nb_participants': nb_participants,
+            'nb_participants': len(participants),
         })
 
 
