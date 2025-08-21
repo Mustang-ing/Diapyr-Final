@@ -25,13 +25,14 @@ except zulip.ZulipError as e:  # pragma: no cover - just defensive logging
     external_client = None
     print(f"Erreur lors de l'initialisation du client Zulip (API mode désactivé): {e}")
 
+thread_list = []
 
 def terminate_diapyr() -> None:
     try:
         active_debates = Debat.objects.filter(is_archived=False)
         if not active_debates:
             print("Aucun débat actif à archiver.")
-            return
+            sys.exit(0)
         
         for debate in active_debates:
             if debate.step == 3:
@@ -43,7 +44,7 @@ def terminate_diapyr() -> None:
                     notify_users(group.group_number, debate.title, group.get_users_emails(), message)
         
         print("Tous les débats actifs ont été archivés.")
-        return
+        sys.exit(0)
     except Exception as e:
         print(f"Erreur lors de l'archivage des débats : {e}")
 
@@ -52,8 +53,7 @@ def signal_handler(signal: int, frame: FrameType):
     if signal == 2:  # SIGINT
         print("Arrêt du bot Diapyr.")
         terminate_diapyr()
-    
-    sys.exit(0)
+
 
 def notify_users(stream_name: str, debat_title: str, user_emails: list[str], message : str) -> None:
     #Notifie les utilisateurs d'un message.
@@ -67,7 +67,6 @@ def notify_users(stream_name: str, debat_title: str, user_emails: list[str], mes
         external_client.send_message(message)
 
 #Il pourrait être intéressant de le déplacer dans un fichier dans actions
-@transaction.atomic(durable=True)
 def split_into_group_db(debat : Debat, max_per_group : int) ->  list[Group]:
     """
     Split participants into groups for the debate.
@@ -120,7 +119,7 @@ def split_into_group_db(debat : Debat, max_per_group : int) ->  list[Group]:
     return groups_db
 
 
-@transaction.atomic(durable=True)
+
 def archive_all_groups(debat: Debat) -> None:
     """
     Archive all groups in the debate.
@@ -173,12 +172,12 @@ def next_step(debat: Debat) -> bool:
     debat.save(update_fields=["round"])
 
     print(f"Étape {debat.round} du débat '{debat.title}'")
-    groups = split_into_group_db(debat)
+    groups = split_into_group_db(debat,debat.max_per_group)
     create_streams_for_groups_db_via_api(groups,124)
 
     external_client.send_message({
         "type": "private",
-        "to": debat.creator_email,
+        "to": debat.creator.email,
         "content": f"Étape {debat.round} démarrée pour le débat '{debat.title}'.",
     })
     return True
@@ -206,15 +205,24 @@ def start_debate_process(debat: Debat) -> None: #N'aurait t'on pas pu faire une 
         # 2 - There not enough users - len(users) <= debat.max_per_group or len(users) < 2
         # 3 - There not enough users after elimination - len(users_to_keep) <= debat.max_per_group
         # In either case it will return False thus it will be true to execute the termination protocol of a debate
-        while not next_step(debat):
-            print(f"Débat '{debat.title}' terminé. Plus qu’un seul groupe.")
-            for group in debat.active_groups:
-                message = f"Le débat '{debat.title}' est terminé. Merci d'avoir participé !"
-                notify_users(group.group_number, debat.title, group.get_users_emails(), message)
+        while next_step(debat) and debat.step < 4:
+            print(f"Le débat {debat.title} continue : Phase - {debat.step} | Tour : {debat.round} | Groupes : {debat.active_groups}")
+            continue
+
+        # Case of termination
+        print(f"Débat '{debat.title}' terminé. Plus qu’un seul groupe.")
+        for group in debat.active_groups:
+            message = f"Le débat '{debat.title}' est terminé. Merci d'avoir participé !"
+            notify_users(group.group_number, debat.title, group.get_users_emails(), message)
+        
+
+        debat.archive_debat()
+        debat.step = 4  # Set step to 4 to indicate the debate is finished
+        debat.save(update_fields=["step"])
+
             
 
-            debat.archive_debat()
-    threading.Thread(target=run_steps).start()
+    thread_list.append(threading.Thread(target=run_steps).start())
 
 def create_streams_for_groups_db_via_api(groups: set[Group], bot_user_id: int) -> list[Stream] | bool:
     """Legacy/API version: use Zulip HTTP API (external client) to create + subscribe.
@@ -267,7 +275,6 @@ def create_streams_for_groups_db_via_api(groups: set[Group], bot_user_id: int) -
     return created_streams
 
 
-@transaction.atomic(durable=True)
 def create_streams_for_groups_db(groups: set[Group], creator: UserProfile) -> list[Stream]:
     
     """Internal version using list_to_streams + bulk_add_subscriptions (no HTTP API).
@@ -357,7 +364,7 @@ def check_and_create_channels() -> None:
 
                 bot_id = debat_obj.bot_id if debat_obj.bot_id else None  # Subterfuge temporaire
                 create_streams_for_groups_db_via_api(groups, bot_id if bot_id else 124)  # 2 argt à modif
-                print(f"Channels créés pour l'objet D '{debat_obj.title}'.")
+                print(f"Channels créés pour le débat '{debat_obj.title}'.")
                 debat_obj.debat_created = True
                 debat_obj.save(update_fields=["debat_created"])
                 start_debate_process(debat_obj)  # Démarrer le processus de débat
@@ -369,5 +376,10 @@ def main_db() -> None:
     while True:
         check_and_create_channels()
         signal.signal(signal.SIGINT, signal_handler)  # Handle Ctrl+C gracefully
+        """
+        for t in thread_list:
+            if t.is_alive():
+                t.join(timeout=5)
+        """
         time.sleep(5)  # Attendre 5 secondes avant de vérifier à nouveau
 
