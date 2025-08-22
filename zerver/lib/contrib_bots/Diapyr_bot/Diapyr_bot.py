@@ -293,6 +293,7 @@ class ObjectD:
                 }
                 
                 response = client.get_messages(request)
+                print(response)
                 
                 if not response.get("result") == "success":
                     print(f"Failed to fetch messages for {member}: {response.get('msg', 'Unknown error')}")
@@ -672,7 +673,7 @@ def add_user() -> None:
 
 def event_listener():
     print("Démarrage de l'écoute des événements...")
-    client.call_on_each_event(handle_reaction, event_types=['reaction'])
+    get_client().call_on_each_event(handle_reaction, event_types=['reaction'])
 
 def main_loop() -> None:
     #Boucle principale du bot.
@@ -680,7 +681,7 @@ def main_loop() -> None:
     i=0 #Utilité ?
     #get_client()  
     threading.Thread(target=message_listener).start()
-    threading.Thread(target=event_listener, daemon=True).start()
+    #threading.Thread(target=event_listener, daemon=True).start()
 
    
     while True:
