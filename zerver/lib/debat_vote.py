@@ -63,10 +63,10 @@ def collect_responses(group: Group)-> None:
         response = external_client.get_messages(request)
 
         if response.get("result") == "success" and response.get("messages"):
-            print(f"Messages récupérés pour {user}: {response['messages']}")
+            #print(f"Messages récupérés pour {user}: {response['messages']}")
 
             messages = response.get("messages", [])
-            print(f"Messages récupérés pour {user}: {messages}")
+            #print(f"Messages récupérés pour {user}: {messages}")
             # Get the most recent message
             last_message = messages[0]
             content = last_message.get("content", "")
@@ -86,6 +86,60 @@ def collect_responses(group: Group)-> None:
 
 
 
+
+def send_poll(group: Group, candidates: list[GroupParticipant]) -> None:
+    """Send final poll and process votes allowing multiple votes per member."""
+    print(f"Envoi des votes de représentant pour {group.group_name} avec candidats: {candidates}")
+    
+    # Create multi-choice poll
+    question = f"Vote des représentant: Sélectionnez les personnes qui vous représenteront à l'étape suivante"
+    options = [f'"{user.participant.email}"' for user in candidates]
+    poll_command = f'/poll "{question}" {" ".join(options)}'
+    
+    #Dans une autre version, c'est le moment idéal pour appeler un endpoint qui fait la même chose que submessage-pool, mais pour Diapyr
+    try:
+        response = external_client.send_message({
+            "type": "stream",
+            "to": group.stream.name,
+            "subject": "Sondage final",
+            "content": poll_command + " --multiple"
+        })
+        print(f"Multi-choice poll sent to {group.stream.name}")
+        if response.get("result") != "success":
+            raise Exception(f"Failed to send poll: {response.get('msg', 'Unknown error')}")
+        
+    except Exception as e:
+        print(f"Error sending poll: {e}")
+
+"""
+def process_poll():
+    # Simulate realistic voting (each member votes for multiple candidates)
+    vote_count = {c: 0 for c in valid_candidates}
+    voters = [m for m in group ]  
+    
+    for voter in voters:
+        try:
+            # Number of votes this member will cast (1 to max_per_group)
+            num_votes = random.randint(1, self.max_per_group)
+            
+            # Select distinct candidates to vote for
+            voted_for = random.sample(valid_candidates, min(num_votes, len(valid_candidates)))
+            
+            for candidate in voted_for:
+                vote_count[candidate] += 1
+        except Exception as e:
+            print(f"Error simulating vote: {e}")
+
+    # Calculate threshold (2/3 of voters)
+    threshold = math.ceil(len(voters) * (2 / 3))
+    selected = {email for email, count in vote_count.items() if count >= threshold}
+    
+    print(f"Vote results for {stream_name}: {vote_count}")
+    print(f"Threshold: {threshold}, Selected: {selected}")
+    return selected
+"""    
+    
+
 def start_vote_procedure(debat: Debat):
     print(f"Démarrage de la procédure de vote pour le débat '{debat.title}'")
     #1 - We start by sending a message to all participant in order to see if they want to be a representant
@@ -97,12 +151,12 @@ def start_vote_procedure(debat: Debat):
 
     #2 - We wait approximatively 30 seconds, this duration could also be chose by the user
     print("\nEn attente des réponses à l'enquéte...")
-    time.sleep(10)  # Attendre 30 secondes pour les réponses
+    time.sleep(30)  # Attendre 30 secondes pour les réponses
 
     #3 - Then we treat the answers
     print("\nTraitement des réponses...")
-    candidates_list: list[list[GroupParticipant]] = []
-    print(f"debat.active_groups: {debat.active_groups}")
+    candidates_list: dict[Group : list[GroupParticipant]] = {}
+
     for group in debat.active_groups:
         print(f"Traitement des réponses pour le groupe {group.group_name}...")
         obj_vote = Vote.objects.create(
@@ -112,11 +166,39 @@ def start_vote_procedure(debat: Debat):
         )
         obj_vote.save()
         collect_responses(group)
-        candidates_list.append(list(group.representant_candidates))
+        candidates_list[group] = list(group.representant_candidates)
 
     print(f"candidates_list: {candidates_list}")
+
+    for group in debat.active_groups:
+
+        candidates = candidates_list.get(group, [])
+        if len(candidates) < 2: 
+            message = f"Pas assez de candidats. Selection aléatoire de candidats..."
+            print(message)
+            notify_users(group.get_users_emails(), message)
+            candidates = random.sample(list(group.group_participants.all()), group.debat.max_representant)
+            send_poll(group,candidates)
+            group.vote.state = 'voting'
+            group.vote.save()
+
+        else: 
+            send_poll(group,candidates)
+            group.vote.state = 'voting'
+            group.vote.save()
+
+        """
+        # Notify candidates about the voting process
+        candidate_emails = [candidate.participant.email for candidate in candidates]
+        notify_users(candidate_emails, f"Le vote va commencer pour le groupe {group.group_name}. Vous pouvez voter pour un représentant parmi les candidats suivants : {', '.join(candidate_emails)}. Envoyez le nom du candidat par message privé.")
+        """
+        # Wait for votes (for simplicity, we wait a fixed time; in a real system, you'd have a more robust mechanism)
+
+        print(f"En attente des votes pour le groupe {group.group_name}...")
+
+    #Delay to wait for users to choose representatives
+    time.sleep(30)
     
-    #candidates_list = [user for group in debat.active_groups for user in group.members if user.is_interested]
 
 
 

@@ -183,6 +183,7 @@ class Group(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     members = models.ManyToManyField(UserProfile, through='GroupParticipant', related_name='group_participants')
     is_archived = models.BooleanField(default=False, null=True)  # Indicates if the group is archived
+    
 
     def __str__(self):
         return f"Group {self.id} for Debate {self.debat.title} (Round {self.round})"

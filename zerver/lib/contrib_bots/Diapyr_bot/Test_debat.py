@@ -48,6 +48,7 @@ def main():
         title=f"TestDebate - Beta3 {num} ",
         creator=UserProfile.objects.get(id=157),  # Assuming the creator is the first user
         max_per_group=max_per_group,
+        max_representant = 3,
         subscription_end_date=(datetime.now() + timedelta(seconds=1)).isoformat(),
         time_between_round=timedelta(seconds=int(time_between_steps)),
         start_date=(datetime.now() + ( timedelta(minutes=30) if mode == 2 else timedelta(seconds=1) )).isoformat(),  # Set start date to 30 minutes later for pre-registration mode
