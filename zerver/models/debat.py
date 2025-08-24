@@ -4,6 +4,7 @@ from django.utils import timezone
 import zerver
 from zerver.models import(
     UserProfile,
+    Message,
     Stream
 ) 
 
@@ -240,6 +241,7 @@ class Vote(models.Model):
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='vote')
     # A Participant in a group can vote for many user that why we've got another M2M relation with vote
     vote_date = models.DateTimeField(auto_now_add=True)
+    vote_message = models.OneToOneField(Message, on_delete=models.CASCADE, related_name='vote', null=True, blank=True)
     state = models.CharField(max_length=20, default='pending',null=True,blank=True)  # pending, accepted, rejected
     round = models.IntegerField(default=1)  # Phase of the debate
 
@@ -254,7 +256,7 @@ class GroupVote(models.Model):
     group = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='group_votes')
     vote_session = models.ForeignKey(Vote, on_delete=models.CASCADE, related_name='group_votes')
     participant = models.ForeignKey(GroupParticipant, on_delete=models.CASCADE)
-    vote_for = models.ForeignKey(GroupParticipant, on_delete=models.CASCADE, related_name='votes_received', blank=True)
+    vote_for = models.ForeignKey(GroupParticipant, on_delete=models.CASCADE, related_name='votes_received', null=True, blank=True)
 
     class Meta:
         unique_together = ('vote_session', 'participant', 'vote_for')

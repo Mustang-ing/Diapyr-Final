@@ -165,8 +165,6 @@ def start_vote_procedure(debat: Debat):
                 group=group, 
                 state='pending',
                 round=group.debat.round,
-                # Add any other required fields for Vote here, e.g.:
-                # debat=group.debat,
             )
             print(vote_obj)
             collect_responses(group)
