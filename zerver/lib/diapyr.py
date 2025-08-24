@@ -139,7 +139,6 @@ def archive_all_groups(debat: Debat) -> None:
         print(f"Tous les groupes du débat '{debat.title}' ont été archivés.")
 
 #Routine 2 - Gérer un débat
-@transaction.atomic(durable=True)
 def next_step(debat: Debat) -> bool:
     """
     Move to the next step of the debate.
@@ -159,11 +158,12 @@ def next_step(debat: Debat) -> bool:
         return False
     
     #Normalement c'est là qu'on doit commencer la procédure de votes
-    #Pour le moment, on va juste se contenter de supprimer l'équivalent d'un groupe au hasard
-
+    #Créer les sessions de vote et laisser les écritures se committer avant d'arrêter le flux
     start_vote_procedure(debat)
     archive_all_groups(debat)
-    sys.exit(0)
+    # Ne pas interrompre le processus brutalement ici (SystemExit annule les transactions).
+    # On arrête proprement cette boucle en retournant False.
+    return False
     eliminated = random.sample(users, debat.max_per_group)
     users_to_keep = [u for u in users if u not in eliminated]
 
