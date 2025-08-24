@@ -166,7 +166,7 @@ class ObjectD:
                     "to": member,
                     "content": "Voulez-vous participer aux étapes suivantes? (oui/non)",
                 })
-                print(f"Message envoyé à {member}: {result}")
+                #print(f"Message envoyé à {member}: {result}")
             except Exception as e:
                 print(f"Erreur lors de l'envoi à {member}: {e}")
 
@@ -293,7 +293,7 @@ class ObjectD:
                 }
                 
                 response = client.get_messages(request)
-                print(response)
+                #print(response)
                 
                 if not response.get("result") == "success":
                     print(f"Failed to fetch messages for {member}: {response.get('msg', 'Unknown error')}")
@@ -374,7 +374,8 @@ class ObjectD:
 
                     stream_names = []
                     for i, group in enumerate(groups):
-                        stream_name = f"{self.name}{'I' * self.step}{i + 1}"
+                        stream_name = f"{self.name} Tour {self.step} - Groupe {i + 1}"
+                        print(f"Tentative d'ajout dans le stream : {stream_name}")
                         stream_names.append(stream_name)
                         self.group_members[stream_name] = group
                     print(f"Groupes créés : {stream_names}")

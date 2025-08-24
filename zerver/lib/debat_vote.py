@@ -92,9 +92,9 @@ def send_poll(group: Group, candidates: list[GroupParticipant]) -> None:
     print(f"Envoi des votes de représentant pour {group.group_name} avec candidats: {candidates}")
     
     # Create multi-choice poll
-    question = f"Vote des représentant: Sélectionnez les personnes qui vous représenteront à l'étape suivante"
-    options = [f'"{user.participant.email}"' for user in candidates]
-    poll_command = f'/poll "{question}" {" ".join(options)}'
+    question = "Vote des représentant: Sélectionnez les personnes qui vous représenteront à l'étape suivante"
+    options = [f"{user.participant.full_name}\n" for user in candidates]
+    poll_command = f'/poll {question} \n {" ".join(options)}'
     
     #Dans une autre version, c'est le moment idéal pour appeler un endpoint qui fait la même chose que submessage-pool, mais pour Diapyr
     try:
@@ -102,7 +102,7 @@ def send_poll(group: Group, candidates: list[GroupParticipant]) -> None:
             "type": "stream",
             "to": group.stream.name,
             "subject": "Sondage final",
-            "content": poll_command + " --multiple"
+            "content": poll_command 
         })
         print(f"Multi-choice poll sent to {group.stream.name}")
         if response.get("result") != "success":
@@ -159,12 +159,15 @@ def start_vote_procedure(debat: Debat):
 
     for group in debat.active_groups:
         print(f"Traitement des réponses pour le groupe {group.group_name}...")
-        obj_vote = Vote.objects.create(
-        group=group, 
-        state='pending',
-        round=group.debat.round,
+        print(f"Création de l'objet Vote pour le groupe {group.group_name}...")
+        vote_obj =Vote.objects.create(
+            group=group, 
+            state='pending',
+            round=group.debat.round,
+            # Add any other required fields for Vote here, e.g.:
+            # debat=group.debat,
         )
-        obj_vote.save()
+        print(vote_obj)
         collect_responses(group)
         candidates_list[group] = list(group.representant_candidates)
 
@@ -178,14 +181,14 @@ def start_vote_procedure(debat: Debat):
             print(message)
             notify_users(group.get_users_emails(), message)
             candidates = random.sample(list(group.group_participants.all()), group.debat.max_representant)
-            send_poll(group,candidates)
-            group.vote.state = 'voting'
-            group.vote.save()
+            send_poll(group, candidates)
+            # group.vote is a RelatedManager (ForeignKey). Update the vote for this round.
+            print(Vote.objects.filter(group=group, round=group.debat.round).update(state='voting'))
 
         else: 
-            send_poll(group,candidates)
-            group.vote.state = 'voting'
-            group.vote.save()
+            send_poll(group, candidates)
+            # group.vote is a RelatedManager (ForeignKey). Update the vote for this round.
+            print(Vote.objects.filter(group=group, round=group.debat.round).update(state='voting'))
 
         """
         # Notify candidates about the voting process
@@ -194,10 +197,14 @@ def start_vote_procedure(debat: Debat):
         """
         # Wait for votes (for simplicity, we wait a fixed time; in a real system, you'd have a more robust mechanism)
 
-        print(f"En attente des votes pour le groupe {group.group_name}...")
+
+    print(f"En attente des votes ...")
 
     #Delay to wait for users to choose representatives
-    time.sleep(30)
+    time.sleep(60)
+
+
+    print("Fin de la période de vote. Traitement des résultats...")
     
 
 

@@ -28,6 +28,10 @@ def main():
         if not bool(user["is_bot"]):
             total += 1
             real_user.append(user)
+
+    #Alternative method 
+
+    #real_users2 = UserProfile.objects.filter(realm_id,is_bot=False)
             
 
     

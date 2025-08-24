@@ -200,7 +200,7 @@ class Group(models.Model):
     @property
     def representant_candidates(self):
         """Return a list of user profiles who are candidates for representative role."""
-        return self.group_participants.filter(is_interested=True).values_list('participant', flat=True)
+        return self.group_participants.filter(is_interested=True)
 
 def get_participant_in_a_group(group: Group, user: UserProfile) :
     return group.group_participants.get(participant=user,group=group)
@@ -227,15 +227,6 @@ class GroupParticipant(models.Model):
     def __str__(self):
         return f"{self.participant.full_name} in Group {self.group.id} of Debate {self.group.debat.title}"
 
-class GroupVote(models.Model):
-    """A vote cast by a participant in a group."""
-    id = models.AutoField(primary_key=True)
-    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='group_votes')
-    participant = models.ForeignKey(GroupParticipant, on_delete=models.CASCADE)
-    vote_for = models.ForeignKey(GroupParticipant, on_delete=models.CASCADE, related_name='votes_received', blank=True)
-
-    def __str__(self):
-        return f"Vote by {self.participant.full_name} in Group {self.group.id} of Debate {self.group.debat.title}"
 
 class Vote(models.Model):
     """
@@ -248,13 +239,29 @@ class Vote(models.Model):
     id = models.AutoField(primary_key=True) 
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='vote')
     # A Participant in a group can vote for many user that why we've got another M2M relation with vote
-    group_vote = models.ManyToManyField(GroupParticipant, related_name='votes',default=None,blank=True)
     vote_date = models.DateTimeField(auto_now_add=True)
     state = models.CharField(max_length=20, default='pending',null=True,blank=True)  # pending, accepted, rejected
     round = models.IntegerField(default=1)  # Phase of the debate
 
     def __str__(self):
         return f"Vote for group {self.group_id}"
+    
+
+
+class GroupVote(models.Model):
+    """This table will list all the ballots of user in a voting session"""
+    id = models.AutoField(primary_key=True)
+    group = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='group_votes')
+    vote_session = models.ForeignKey(Vote, on_delete=models.CASCADE, related_name='group_votes')
+    participant = models.ForeignKey(GroupParticipant, on_delete=models.CASCADE)
+    vote_for = models.ForeignKey(GroupParticipant, on_delete=models.CASCADE, related_name='votes_received', blank=True)
+
+    class Meta:
+        unique_together = ('vote_session', 'participant', 'vote_for')
+
+    def __str__(self):
+        return f"Vote by {self.participant.full_name} in Group {self.group.id} of Debate {self.group.debat.title}"
+
     
 
             
