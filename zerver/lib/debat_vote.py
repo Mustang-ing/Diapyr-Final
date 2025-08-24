@@ -160,15 +160,18 @@ def start_vote_procedure(debat: Debat):
     for group in debat.active_groups:
         print(f"Traitement des réponses pour le groupe {group.group_name}...")
         print(f"Création de l'objet Vote pour le groupe {group.group_name}...")
-        vote_obj =Vote.objects.create(
-            group=group, 
-            state='pending',
-            round=group.debat.round,
-            # Add any other required fields for Vote here, e.g.:
-            # debat=group.debat,
-        )
-        print(vote_obj)
-        collect_responses(group)
+        try : 
+            vote_obj =Vote.objects.create(
+                group=group, 
+                state='pending',
+                round=group.debat.round,
+                # Add any other required fields for Vote here, e.g.:
+                # debat=group.debat,
+            )
+            print(vote_obj)
+            collect_responses(group)
+        except Exception as e:
+            print(f"Error creating vote object for group {group.group_name}: {e}")
         candidates_list[group] = list(group.representant_candidates)
 
     print(f"candidates_list: {candidates_list}")
