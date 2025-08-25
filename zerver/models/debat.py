@@ -202,6 +202,11 @@ class Group(models.Model):
     def representant_candidates(self):
         """Return a list of user profiles who are candidates for representative role."""
         return self.group_participants.filter(is_interested=True)
+    
+    @property
+    def num_voters(self):
+        """Return the number of voters in the group."""
+        return self.group_participants.filter(has_voted=True).count()
 
 def get_participant_in_a_group(group: Group, user: UserProfile) :
     return group.group_participants.get(participant=user,group=group)
@@ -264,11 +269,7 @@ class GroupVote(models.Model):
 
     def __str__(self):
         return f"Vote by {self.participant.full_name} in Group {self.group.id} of Debate {self.group.debat.title}"
-    
 
-def get_votes_count(group_vote : GroupVote, participant : GroupParticipant) -> int:
-    """Return the number of votes received by a participant in a voting session."""
-    return GroupVote.objects.filter(vote_session=group_vote.vote_session, vote_for=participant).count()
 
     
 

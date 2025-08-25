@@ -78,8 +78,8 @@ def process_diapyr_submessage(
                     voter_gp = GroupParticipant.objects.get(group=group, participant=user_profile)
 
                 except Exception as e:
-                    raise e
-                    
+                    raise Exception(f"{e} : Erreur pour les arguments {group}, {user_option} (candidate_gp) OU {user_profile} (voter_gp)")
+
 
             #At last, we will fill the GroupVote table corresponding to the vote_flag value.
             # If vote_flag = 1, we will add a row to count the vote to the table

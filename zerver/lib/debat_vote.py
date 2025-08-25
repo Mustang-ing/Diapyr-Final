@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 import time
 import random
 import threading
+import traceback
 from types import FrameType
 from django import db
 from django.db import transaction
@@ -130,33 +131,39 @@ def send_poll(group: Group, candidates: list[GroupParticipant]) -> None:
 
 
 
-"""
-def process_poll():
-    # Simulate realistic voting (each member votes for multiple candidates)
-    vote_count = {c: 0 for c in valid_candidates}
-    voters = [m for m in group ]  
-    
-    for voter in voters:
-        try:
-            # Number of votes this member will cast (1 to max_per_group)
-            num_votes = random.randint(1, self.max_per_group)
-            
-            # Select distinct candidates to vote for
-            voted_for = random.sample(valid_candidates, min(num_votes, len(valid_candidates)))
-            
-            for candidate in voted_for:
-                vote_count[candidate] += 1
-        except Exception as e:
-            print(f"Error simulating vote: {e}")
+
+def process_poll_result(group: Group, candidates: list[GroupParticipant], max_representant: int) -> list[GroupParticipant]:
+    # We make the structure to count the votes
+    vote_count: dict[GroupParticipant, int] = {}
+    for participant in candidates:
+        num_votes = GroupVote.objects.filter(group=group, vote_for=participant).count()
+        vote_count[participant] = num_votes
+
+    print(f"Vote results for {group.stream.name}: {vote_count}")
 
     # Calculate threshold (2/3 of voters)
-    threshold = math.ceil(len(voters) * (2 / 3))
-    selected = {email for email, count in vote_count.items() if count >= threshold}
-    
-    print(f"Vote results for {stream_name}: {vote_count}")
-    print(f"Threshold: {threshold}, Selected: {selected}")
-    return selected
-"""    
+    threshold = math.ceil(group.num_voters * (2 / 3))
+    selected : list[UserProfile] = [c.participant for c in vote_count.keys() if vote_count[c] >= threshold]
+    if len(selected) > max_representant:
+        selected = set(random.sample(selected, max_representant))
+        print(f"Threshold: {threshold}, Selected (after random sampling to max {max_representant}): {selected}")
+        return selected
+
+    elif len(selected) < max_representant:
+        # Sort candidates by number of votes (descending), only keep those with at least 1 vote
+        #When there aren't enough people who exceed the threshold, we will simply choose the candidates based on how much votes they recolted
+        sorted_candidates = [
+            (candidate, count) for candidate, count in vote_count.items() if count >= 1
+        ]
+        sorted_candidates.sort(key=lambda item: item[1], reverse=True)
+        selected = [candidate.participant for candidate,_ in sorted_candidates[:max_representant]]
+        print(f"Threshold: {threshold}, Selected (after sorting and filtering to max {max_representant}): {selected}")
+        return selected
+        
+    else:
+        print(f"No user has been elected, your group won't be represented into the next phase")
+        return None
+
     
 
 def start_vote_procedure(debat: Debat):
@@ -198,9 +205,11 @@ def start_vote_procedure(debat: Debat):
         candidates = candidates_list.get(group, [])
         if len(candidates) < 2: 
             message = f"Pas assez de candidats. Selection aléatoire de candidats..."
+            #Attention dans la réalité, les groupes qui ne vote pas assez ne sont pas représenté (Aucun candidats)
             print(message)
             notify_users(group.get_users_emails(), message)
             candidates = random.sample(list(group.group_participants.all()), group.debat.max_representant)
+            candidates_list[group] = candidates
             send_poll(group, candidates)
             # group.vote is a RelatedManager (ForeignKey). Update the vote for this round.
             print(Vote.objects.filter(group=group, round=group.debat.round).update(state='voting'))
@@ -222,6 +231,36 @@ def start_vote_procedure(debat: Debat):
 
     #Delay to wait for users to choose representatives
     time.sleep(60)
+
+    #We treat the result of the pool (The proccess pool funtion has been running in actions/process_debat_form )
+    print("Traitement des débats...")
+    for group in debat.active_groups:
+        print(f"Traitement des votes pour le groupe {group.group_name}...")
+        try:
+
+            selected_representants = process_poll_result(group,candidates_list[group],debat.max_representant)
+            print(f"Selected representants for group {group.group_name}: {selected_representants}")
+            # Update GroupParticipants to mark selected representants
+            if selected_representants is not None:
+                for representant in selected_representants:
+                    #GroupParticipant.objects.filter(participant=representant).update(is_representative=True)
+                    Participant.objects.filter(user=representant).update(is_representative=True)
+
+                # Notify the group about the selected representants
+                representant_names = [rep.full_name for rep in selected_representants]
+                notify_users(
+                    group.get_users_emails(), 
+                    f"Le vote pour le groupe {group.group_name} est terminé. \n Les représentants sélectionnés pour le groupe {group.group_name} sont : {', '.join(representant_names)}"
+                )
+
+            # Update the vote state to 'completed'
+            Vote.objects.filter(group=group, round=group.debat.round).update(state='completed')
+
+        except Exception as e:
+            traceback.print_exc()
+            print(f"Error processing votes for group {group.group_name}: {e}")
+            raise
+    
 
 
     print("Fin de la période de vote. Traitement des résultats...")
