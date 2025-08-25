@@ -1,8 +1,10 @@
 from datetime import date, timedelta
 from django.db import models
 from django.utils import timezone
+import zerver
 from zerver.models import(
     UserProfile,
+    Message,
     Stream
 ) 
 
@@ -83,7 +85,7 @@ class Debat(models.Model):
         return list(self.debat_participants.all())
     
     @property
-    def active_participants(self) -> list[UserProfile]:
+    def active_participants(self):
         """Return a list of active participants in the debate."""
         return list(self.debat_participant.filter(is_active_in_diapyr=True))
     
@@ -162,7 +164,11 @@ class Participant(models.Model):
     def name(self):
         """Return the full name of the participant."""
         return self.user.full_name if self.user else "Unknown User"
-
+    
+    @property
+    def email(self):
+        """Return the email of the participant."""
+        return self.user.email if self.user else "Unknown User"
 
 
 class Group(models.Model):
@@ -178,6 +184,7 @@ class Group(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     members = models.ManyToManyField(UserProfile, through='GroupParticipant', related_name='group_participants')
     is_archived = models.BooleanField(default=False, null=True)  # Indicates if the group is archived
+    
 
     def __str__(self):
         return f"Group {self.id} for Debate {self.debat.title} (Round {self.round})"
@@ -191,36 +198,83 @@ class Group(models.Model):
         return [email for email in self.members.values_list('email', flat=True)]
 
 
+    @property
+    def representant_candidates(self):
+        """Return a list of user profiles who are candidates for representative role."""
+        return self.group_participants.filter(is_interested=True)
+
+def get_participant_in_a_group(group: Group, user: UserProfile) :
+    return group.group_participants.get(participant=user,group=group)
+
+
 class GroupParticipant(models.Model):
     """A group participant is a participant that is in a group.
-    A participant can be in multiple groups, but only one group per debate."""
+    A participant can be in multiple groups.
+    The main difference between Participant and GroupParticipant is that GroupParticipant track a participant in all the different groups they are in.
+    While Participant will simply linked a user to a debate.
+    """
 
     id = models.AutoField(primary_key=True)
-    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE,related_name='group_participants')
     participant = models.ForeignKey(UserProfile, on_delete=models.CASCADE)
+    #It could be usefull to linked GroupParticipant to Participant
+    is_interested = models.BooleanField(null=True, default=None) # Indicates if the voter is interested by becoming a representative
+    is_representative = models.BooleanField(null=True, default=False)  # Indicates if the participant is a representative of the group
+    has_voted = models.BooleanField(null=True, default=False)  # Indicates if the participant has voted in the current round
+    vote_count = models.IntegerField(null=True, default=0)  # Number of votes received in the current round
+
+    
+    #votes = models.ManyToManyField(Vote, related_name='group_participants', blank=True)
 
     def __str__(self):
         return f"{self.participant.full_name} in Group {self.group.id} of Debate {self.group.debat.title}"
-    
-            
+
 
 class Vote(models.Model):
     """
+    This table is used to represent a Vote session that occurs during a debate.
+    THIS TABLE DOES NOT REPRESENT THE VOTE OF A USER
     During the process of a debate, a user can vote for several other users to elect a representative
     There is only one vote per group, and a user can vote for multiple users.
     """
 
     id = models.AutoField(primary_key=True) 
-    group = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='vote')
-    voter = models.OneToOneField(UserProfile, on_delete=models.CASCADE, related_name='votes_cast')
-    voted_participant = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name='votes_received')
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='vote')
+    # A Participant in a group can vote for many user that why we've got another M2M relation with vote
     vote_date = models.DateTimeField(auto_now_add=True)
+    vote_message = models.OneToOneField(Message, on_delete=models.CASCADE, related_name='vote', null=True, blank=True)
     state = models.CharField(max_length=20, default='pending',null=True,blank=True)  # pending, accepted, rejected
-    phase = models.IntegerField(default=1)  # Phase of the debate
+    round = models.IntegerField(default=1)  # Phase of the debate
 
     def __str__(self):
         return f"Vote for group {self.group_id}"
     
+
+
+class GroupVote(models.Model):
+    """This table will list all the ballots of user in a voting session"""
+    id = models.AutoField(primary_key=True)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='group_votes')
+    vote_session = models.ForeignKey(Vote, on_delete=models.CASCADE, related_name='group_votes')
+    participant = models.ForeignKey(GroupParticipant, on_delete=models.CASCADE)
+    vote_for = models.ForeignKey(GroupParticipant, on_delete=models.CASCADE, related_name='votes_received', null=True, blank=True)
+
+    class Meta:
+        unique_together = ('vote_session', 'participant', 'vote_for')
+
+    def __str__(self):
+        return f"Vote by {self.participant.full_name} in Group {self.group.id} of Debate {self.group.debat.title}"
+    
+
+def get_votes_count(group_vote : GroupVote, participant : GroupParticipant) -> int:
+    """Return the number of votes received by a participant in a voting session."""
+    return GroupVote.objects.filter(vote_session=group_vote.vote_session, vote_for=participant).count()
+
+    
+
+            
+
+
     
 
     

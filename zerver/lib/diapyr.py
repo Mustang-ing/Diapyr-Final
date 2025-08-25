@@ -6,6 +6,7 @@ from types import FrameType
 from django.db import transaction
 import zulip
 from zerver.actions.streams import bulk_add_subscriptions
+from zerver.lib.debat_vote import start_vote_procedure
 from zerver.lib.moderate_debat import message_listener
 from zerver.lib.streams import list_to_streams
 from zerver.models import UserProfile, Stream
@@ -138,7 +139,6 @@ def archive_all_groups(debat: Debat) -> None:
         print(f"Tous les groupes du débat '{debat.title}' ont été archivés.")
 
 #Routine 2 - Gérer un débat
-@transaction.atomic(durable=True)
 def next_step(debat: Debat) -> bool:
     """
     Move to the next step of the debate.
@@ -147,7 +147,7 @@ def next_step(debat: Debat) -> bool:
     print(f"Attente de {debat.time_between_round} avant la prochaine étape...")
     time.sleep(debat.time_between_round.total_seconds())
 
-    archive_all_groups(debat)
+    
     users = debat.active_participants
     if users is None or len(users) == 0:
         print(f"Aucun utilisateur inscrit dans le débat '{debat.name}'.")
@@ -158,7 +158,12 @@ def next_step(debat: Debat) -> bool:
         return False
     
     #Normalement c'est là qu'on doit commencer la procédure de votes
-    #Pour le moment, on va juste se contenter de supprimer l'équivalent d'un groupe au hasard
+    #Créer les sessions de vote et laisser les écritures se committer avant d'arrêter le flux
+    start_vote_procedure(debat)
+    archive_all_groups(debat)
+    # Ne pas interrompre le processus brutalement ici (SystemExit annule les transactions).
+    # On arrête proprement cette boucle en retournant False.
+    return False
     eliminated = random.sample(users, debat.max_per_group)
     users_to_keep = [u for u in users if u not in eliminated]
 

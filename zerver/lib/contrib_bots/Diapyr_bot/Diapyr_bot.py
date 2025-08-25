@@ -1,15 +1,14 @@
 import json
 import os
+import django
 import sys
 
 from zerver.lib.diapyr import main_db, split_into_group_db, create_streams_for_groups_db_via_api, create_streams_for_groups_db
 
 
 # Set the settings module from your Zulip settings (adjust path if needed)
-sys.path.append("/home/jass/Diapyr/Diapyr-Final") 
+sys.path.append("/home/ghostie/Diapyr/Diapyr-Final")
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zproject.settings")
-
-import django
 django.setup()
 import math
 
@@ -24,6 +23,8 @@ from zerver.models import (
     UserProfile,
 )    
 
+from typing import Dict, List, Set
+from bs4 import BeautifulSoup
 
 # Configuration du bot
 client = None
@@ -64,6 +65,10 @@ class ObjectD:
         self.step = 1
         self.subscribers = {} #{"user_email": {"name": "User Name"}}
         self.channels_created = False
+        # Structures pour gérer les sondages
+        self.selected: list[str] = []           # [emails]
+        self.group_members: Dict[str, List[str]] = {}  # {stream_name: [emails]}
+
         print(f"Création d'un objet débat : {name}")
 
     def update(self, **kwargs) -> None:
@@ -77,8 +82,8 @@ class ObjectD:
         self.subscribers[user_email] = user_info
         print(f"Ajout du participant {user_email}")
 
-
     def split_into_groups(self) -> list[list[str]]:
+        print("Répartition des utilisateurs en groupes...")
         users = list(self.subscribers.keys())
         random.shuffle(users)  
     
@@ -117,9 +122,6 @@ class ObjectD:
 
         #split_into_group_db(Debat.objects.get(title=self.name), self.max_per_group)
         return groups
-            
-
-        
     
     def create_streams_for_groups(self, groups: list[list[str]]) -> list[str]:
         #Crée des streams pour chaque groupe et ajoute les utilisateurs.
@@ -139,42 +141,9 @@ class ObjectD:
         return streams
     
 
-    def next_step(self):
-        users = list(self.subscribers.keys())
-        if users is None or len(users) == 0:
-            print(f"Aucun utilisateur inscrit dans le débat '{self.name}'.")
-            return False
-        
-        num_groups = len(users) //  self.max_per_group 
-        for i in range(num_groups):  #On récupere le nombre de groupe de l'étape acutel afin d'avoir leurs stream 
-            stream_name = self.name + f"P{self.step} - Groupe {i+1}"  #On prend leurs noms 
-            try:
-                stream_id = client.get_stream_id(stream_name)["stream_id"]
-                client.delete_stream(stream_id)
-                print(f" Archivage du stream {stream_name} ")
-            except Exception as e:
-                print(f" Erreur sur le stream{stream_name} |  {str(e)}")
-
-                
-        
-        #On vérifie si leurs nombre est assez grand pour etre divisé OU que le nombre de passes choisit est inférieur OU au moins 2 utilisateurs
-        if len(users) <= self.max_per_group or len(users) < 2:
-            return False
-        
-        eliminated = random.sample(users,self.max_per_group)
-        users_to_keep = [u for u in users if u not in eliminated]
-
-        if len(users_to_keep) <= self.max_per_group: #Si apres la suppresion enleve trop de personne
-            return False
-        
-        self.subscribers = {u: self.subscribers[u] for u in users_to_keep}
-        self.step += 1
-        return True
 
     def get_status(self) -> str:
         users = list(self.subscribers.keys())
-        print("gagagaaaaaaaaaaaaaaaaa")
-
         if self.creator_email not in users:
             users.append(self.creator_email)
         groups = [users[i:i + self.max_per_group] for i in range(0, len(users), self.max_per_group)]
@@ -185,61 +154,284 @@ class ObjectD:
         for idx, group in enumerate(groups):
             info += f"Groupe {idx + 1}: {', '.join(group)}\n"
         return info
+
     
+    # Méthode pour envoyer une question d'enquette pour tous les participants
 
-    def start_debate_process(self) -> None: #N'aurait t'on pas pu faire une seule fonction pour gérer les étapes ? Ou voir les décorateurs ?
+    def send_enquete(self, group_members: list[str]) -> None:
+        for member in group_members:
+            try:
+                result = client.send_message({
+                    "type": "private",
+                    "to": member,
+                    "content": "Voulez-vous participer aux étapes suivantes? (oui/non)",
+                })
+                #print(f"Message envoyé à {member}: {result}")
+            except Exception as e:
+                print(f"Erreur lors de l'envoi à {member}: {e}")
+
+
+        # fonction pour envoyer sondage final
+
+    
+    def send_poll2(self,stream_name: str, candidates: List[str]) -> Set[str]:
+        print(f"Envoi du sondage final pour {stream_name} avec candidats: {candidates}")
+        if stream_name not in self.group_members:
+            print(f"Unknown stream: {stream_name}")
+            return set()
+        
+        group = self.group_members[stream_name]
+        if not group or not candidates:
+            print(f"No valid candidates in {stream_name}")
+            return set()
+        
+         # Get member names
+        try:
+            all_members = get_all_zulip_user_emails()
+            email_to_name = {m["email"]: m["full_name"] for m in all_members}
+            #print(f"Members fetched for {stream_name}: {email_to_name}")
+        except Exception as e:
+            print(f"Error getting members: {e}")
+            return set()
+
+
+    def send_poll(self, stream_name: str, candidates: List[str]) -> Set[str]:
+        """Send final poll and process votes allowing multiple votes per member."""
+        print(f"Envoi du sondage final pour {stream_name} avec candidats: {candidates}")
+        if stream_name not in self.group_members:
+            print(f"Unknown stream: {stream_name}")
+            return set()
+
+        group = self.group_members[stream_name]
+        if not group or not candidates:
+            print(f"No valid candidates in {stream_name}")
+            return set()
+
+        # Get member names
+        try:
+            all_members = client.get_members()["members"]
+            email_to_name = {m["email"]: m["full_name"] for m in all_members}
+            #print(f"Members fetched for {stream_name}: {email_to_name}")
+        except Exception as e:
+            print(f"Error getting members: {e}")
+            return set()
+
+        # Filter valid candidates
+        valid_candidates = [c for c in candidates if c in group and c in email_to_name]
+        print(f"Valid candidates for {stream_name}: {valid_candidates}")
+        if not valid_candidates:
+            print(f"No valid candidates in {stream_name}")
+            return set()
+
+        # Create multi-choice poll
+        question = f"Vote final: Sélectionnez jusqu'à {self.max_per_group} membres pour l'étape suivante"
+        options = [f'"{email_to_name[c]}"' for c in valid_candidates]
+        poll_command = f'/poll "{question}" {" ".join(options)}'
+        
+        try:
+            response = client.send_message({
+                "type": "stream",
+                "to": stream_name,
+                "subject": "Sondage final",
+                "content": poll_command + " --multiple"
+            })
+            print(f"Multi-choice poll sent to {stream_name}")
+        except Exception as e:
+            print(f"Error sending poll: {e}")
+            return set()
+
+        # Wait for votes (simulated)
+        time.sleep(30)  # Wait 2 minutes for votes
+        
+        # Simulate realistic voting (each member votes for multiple candidates)
+        vote_count = {c: 0 for c in valid_candidates}
+        voters = [m for m in group ]  
+        
+        for voter in voters:
+            try:
+                # Number of votes this member will cast (1 to max_per_group)
+                num_votes = random.randint(1, self.max_per_group)
+                
+                # Select distinct candidates to vote for
+                voted_for = random.sample(valid_candidates, min(num_votes, len(valid_candidates)))
+                
+                for candidate in voted_for:
+                    vote_count[candidate] += 1
+            except Exception as e:
+                print(f"Error simulating vote: {e}")
+
+        # Calculate threshold (2/3 of voters)
+        threshold = math.ceil(len(voters) * (2 / 3))
+        selected = {email for email, count in vote_count.items() if count >= threshold}
+        
+        print(f"Vote results for {stream_name}: {vote_count}")
+        print(f"Threshold: {threshold}, Selected: {selected}")
+        return selected
+
+
+
+    # fonction pour récuperer les réponses issue des messages privés
+
+    def collect_reponses(self, stream_name: str) -> list[str]:
+        self.selected = []
+        members = self.group_members.get(stream_name, [])
+        
+        if not members:
+            print(f"No members found for stream {stream_name}")
+            return self.selected
+
+        for member in members:
+            try:
+                # Fetch the most recent message in the PM conversation
+                request = {
+                    "anchor": "newest",
+                    "num_before": 1,  # Get only the most recent message
+                    "num_after": 0,
+                    "narrow": [
+                        {"operator": "pm-with", "operand": member},
+                    ],
+                }
+                
+                response = client.get_messages(request)
+                #print(response)
+                
+                if not response.get("result") == "success":
+                    print(f"Failed to fetch messages for {member}: {response.get('msg', 'Unknown error')}")
+                    continue
+                    
+                messages = response.get("messages", [])
+                
+                if not messages:
+                    print(f"pas de message trouvé {member}")
+                    continue
+                    
+                # Get the most recent message
+                last_message = messages[0]
+                content = last_message.get("content", "")
+                
+                # Parse HTML and clean text
+                content_text = BeautifulSoup(content, "html.parser").get_text().strip().lower()
+                
+                # Check if the message is a response to our poll
+                if content_text == "oui":
+                    print(f"réponse positif de {member}")
+                    self.selected.append(member)
+                    
+            except Exception as e:
+                print(f"Error processing response from {member}: {str(e)}")
+                continue
+                
+        print(f"Collected responses for {stream_name}: {self.selected}")
+        return self.selected
+
+    def next_step(self) -> bool:
+        print("Passage à l'étape suivante...")
+        # 1. Création des groupes
+        users = list(self.subscribers.keys())
+        if users is None or len(users) == 0:
+            print(f"Aucun utilisateur inscrit dans le débat '{self.name}'.")
+            return False
+       
+        # 2. Envoi des MPs
+        for stream_name in self.group_members:
+            self.send_enquete(self.group_members[stream_name])
+            print(f"envoie enquete au stream {stream_name}...")
+
+        # 3. Attente des réponses
+        print("\nEn attente des réponses à l'enquéte...")
+        time.sleep(45)  # Attendre 20 secondes pour les réponses
+
+        # 4. Traitement des réponses
+        #A paraleliser, on fait de manière séquentielle pour chaque streams c'est trop lent
+        selected_members = set()
+        for stream_name in self.group_members:
+            responders = self.collect_reponses(stream_name)
+            #print(f"Réponses collectées pour {stream_name}: {responders}")
+            if responders:
+                selected = self.send_poll(stream_name, responders)
+                selected_members.update(selected)
+
+    # fonction pour commencer le debat
+
+    def start_debate_process(self) -> None:
+
         def run_steps() -> None:
-            while True:
-                print(f"Attente de {self.time_between_steps} avant la prochaine étape...")
-                time.sleep(self.time_between_steps.total_seconds())
-                if not self.next_step():
-                    print(f"Débat '{self.name}' terminé. Plus qu’un seul groupe.")
-                    users = list(self.subscribers.keys())
-                    print(f"Liste des users: {users}")  
-                    for mail in users:
-                        print(f"Envoi à: {mail}")  
-                        client.send_message({
-                            "type": "private",
-                            "to": mail,
-                            "content": f"Le débat'{self.name}' est terminé. Merci d'avoir participé !",
-                        })
-                    try:
-                        debat = Debat.objects.get(title=self.name)
-                        debat.is_archived = True
-                        debat.save()
-                        print(f"Débat '{self.name}' archivé dans la base de données.")
-                    except Debat.DoesNotExist:
-                        print(f"Erreur: Débat '{self.name}' non trouvé dans la base de données.")
-                    except Exception as e:
-                        print(f"Erreur lors de la suppression du débat: {str(e)}")
-                    print(f"Suppression du débat{self.name}")                    
-                    # Suppression de la liste en mémoire
-                    if self.name in listeDebat:
-                        del listeDebat[self.name]
-                    break
-            
 
-                print(f"Étape {self.step} du débat '{self.name}'")
-                groups = self.split_into_groups()
-                self.create_streams_for_groups(groups)
+            try:
+                while True:
+                    # Attente entre étapes
+                    total_seconds = int(self.time_between_steps.total_seconds())
+                    print(f"\n---\nAttente de {self.time_between_steps} avant étape {self.step}...")
+                    time.sleep(total_seconds)
 
+                    print(f"\n=== Début étape {self.step} du débat '{self.name}' ===")
+
+                    # 1. Création des groupes
+                    groups = self.split_into_groups()
+                    if not groups:
+                        print("Aucun groupe créé, fin du débat")
+                        break
+
+                    stream_names = []
+                    for i, group in enumerate(groups):
+                        stream_name = f"{self.name} Tour {self.step} - Groupe {i + 1}"
+                        print(f"Tentative d'ajout dans le stream : {stream_name}")
+                        stream_names.append(stream_name)
+                        self.group_members[stream_name] = group
+                    print(f"Groupes créés : {stream_names}")
+
+                    # 2. Envoi des MPs
+                    for stream_name in stream_names:
+                        self.send_enquete(self.group_members[stream_name])
+                    print(f"envoie enquete...")
+
+                    # 3. Attente des réponses
+                    print("\nEn attente des réponses à l'enquéte...")
+                    time.sleep(45)  # Attendre 20 secondes pour les réponses
+
+                    # 4. Traitement des réponses
+                    selected_members = set()
+                    for stream_name in stream_names:
+                        responders = self.collect_reponses(stream_name)
+                        #print(f"Réponses collectées pour {stream_name}: {responders}")
+                        if responders:
+                            selected = self.send_poll(stream_name, responders)
+                            selected_members.update(selected)
+                    # 5. Préparation étape suivante
+                    if not selected_members:
+                        print("Aucun membre sélectionné, fin du débat")
+                        break
+
+                    # Mise à jour des participants
+                    self.subscribers = {
+                        email: info 
+                        for email, info in self.subscribers.items() 
+                        if email in selected_members
+                    }
+                    print(f"Membres sélectionnés pour l'étape {self.step}: {selected_members}")
+                    self.step += 1
+
+                    # Vérifier si fin du débat
+                    if len(self.subscribers) <= self.max_per_group:
+                        print("Plus qu'un seul groupe possible, fin du débat")
+                        break
+
+            except Exception as e:
+                print(f"ERREUR dans run_steps: {str(e)}")
+            finally:
+                print(f"Débat '{self.name}' terminé")
                 client.send_message({
                     "type": "private",
                     "to": self.creator_email,
-                    "content": f"Étape {self.step} démarrée pour le débat '{self.name}'.",
+                    "content": f"Débat '{self.name}' terminé après {self.step} étapes.",
                 })
-        threading.Thread(target=run_steps).start()
-    
+        threading.Thread(target=run_steps, daemon=True).start()
+
 # Fonctions utilitaires
     
 def add_users_to_stream(stream_name: str, user_emails: list[str]) -> bool:
     print(f"Ajout de {user_emails} dans {stream_name}")
     user_ids = [get_user_id(email) for email in user_emails if get_user_id(email)]
-    # Ajout de l'ID du bot lui-même
-    bot_user_id = get_user_id(get_client().get_profile()["email"])
-    if bot_user_id and bot_user_id not in user_ids:
-        user_ids.append(bot_user_id)
-
     if not user_ids:
         return False
     try:
@@ -247,7 +439,7 @@ def add_users_to_stream(stream_name: str, user_emails: list[str]) -> bool:
             streams=[{"name": stream_name}],
             principals=user_ids,
         )
-        print(f"Ajout réussi")
+        print(f"Résultat ajout utilisateurs: {result}")
         return result["result"] == "success"
     except Exception as e:
         print(f"Erreur lors de l'ajout des utilisateurs : {e}")
@@ -260,7 +452,7 @@ def notify_users(stream_name: str, user_emails: list[str]) -> None:
         message = {
             "type": "private",
             "to": email,
-            "content": f"Vous avez été affecté au groupe '{stream_name}'.",#Plus de clarté quelle groupe en particilier
+            "content": f"Vous avez été affecté au groupe '{stream_name}'.",
         }
         get_client().send_message(message)
 
@@ -275,11 +467,7 @@ def get_user_id(user_email: str) -> str:
 # Fonction a retirer
 def get_email_by_full_name(full_name: str) -> str: 
     #Récupère l'email à partir du nom complet.
-    try:
-        result = client.get_members()
-    except AttributeError:
-        print(f"Erreur lors de la récupération des membres. La variable ""client"" est elle initialisé ? : {client}")
-        return None
+    result = client.get_members()
     for user in result['members']:
         if user['full_name'].strip().lower() == full_name.strip().lower():
             return user['email']
@@ -289,7 +477,8 @@ def get_email_by_full_name(full_name: str) -> str:
 def get_all_zulip_user_emails():
     result = get_client().get_members()
     return [user["email"] for user in result["members"]]
-    
+
+
 
 
 # Gestion des débats
@@ -297,28 +486,9 @@ listeDebat = {}
 
 def handle_message(msg: dict[str, str]) -> None:
     print("Message reçu")
-    #print(msg)
-    global id_message_stats, stream_stats
-
-    # Ignorer les messages envoyés par le bot lui-même
-    if msg["sender_email"] == get_client().get_profile()["email"]:
-        return
+    print(msg["content"])
     content = msg["content"].strip()
     user_email = msg["sender_email"]
-    user_name = msg["sender_full_name"]
-    nb_car = len(content)
-
-    if user_email not in stats_utilisateurs:
-        stats_utilisateurs[user_email] = {
-            "messages": 0,
-            "caracteres": 0,
-            "name": user_name,
-            "is_subscriber": True
-        }
-        historique_messages[user_email] = []
-    
-    stats_utilisateurs[user_email]["messages"] += 1
-    stats_utilisateurs[user_email]["caracteres"] += nb_car
 
     if content.startswith("@créer"):
         print("Commande : créer")
@@ -377,115 +547,48 @@ def handle_message(msg: dict[str, str]) -> None:
         if name in listeDebat:
             status = listeDebat[name].get_status()
             client.send_message({"type": "private", "to": user_email, "content": status})
-    
-    # alerte spam ------------------------------------------------------------------------
-    now = datetime.now()
-    if user_email not in historique_messages:
-        historique_messages[user_email] = []
 
-    # Ajout du temps d'envoi du message actuel à l'historique 
-    historique_messages[user_email].append(now)
+    #Nouveau bloc pour gérer la publication des sondages par les membres choisis
+    for debate in listeDebat.values():
+        # Vérifie si ce débat a une liste poll_authors et si l'utilisateur en fait partie
+        if hasattr(debate, "poll_authors") and user_email in debate.poll_authors:
+            stream_name = debate.group_to_stream.get(user_email)
 
-    # Garder uniquement les messages des 10 dernières secondes
-    historique_messages[user_email] = [
-        t for t in historique_messages[user_email]
-        if (now - t).total_seconds() <= 10
-    ]
-
-    # Vérifier si l'utilisateur spamme
-    if len(historique_messages[user_email]) > 5:
-        get_client().send_message({
-            "type": "stream",
-            "to": msg["display_recipient"],
-            "topic": msg["subject"],
-            "content": f"@**{msg['sender_full_name']}** ⚠️ Vous envoyez trop de messages en peu de temps. Merci de ralentir pour laisser les autres s’exprimer."
-        })
-        historique_messages[user_email] = []  # Réinitialise pour ne pas répéter l’alerte
-    
-    # Affichage des autres alertes ---------------------------------------------------
-    if len(stats_utilisateurs) >= 2:
-        med_msg = get_mediane()
-        #si la mediane des messages est inférieure à 2, trop tôt pour alerter
-        if med_msg >= 2:
-            user_msgs = stats_utilisateurs.get(user_email, {}).get("messages", 0)
-            if user_msgs > 2 * med_msg and user_msgs >= 5: # Au moins 5 msgs
-                get_client().send_message({
-                    "type": "stream",
-                    "to": msg["display_recipient"],
-                    "topic": msg["subject"],
-                    "content": f"@**{msg['sender_full_name']}** ⚠️ Vous avez envoyé trop de messages (médiane: {med_msg}). Merci de laisser de la place aux autres."
-                })
-             # Participation faible (messages)
-            ratio_msg = user_msgs / med_msg if med_msg > 0 else 0
-            maintenant = datetime.now()
-            dernier = dernier_alerte_utilisateur.get(user_email, datetime.min)
-            COOLDOWN = max(300, len(stats_utilisateurs) * 30)
-            if 0 < ratio_msg < 0.5 and (maintenant - dernier).total_seconds() > COOLDOWN :
-                if ratio_msg < 0.25 : 
-                    texte = "⚠️ **Votre participation est très faible** comparée aux autres. Votre avis est important !"
-                elif ratio_msg < 0.5:
-                    texte = "💡 **Vous pourriez participer davantage** - le débat a besoin de votre voix !"
-                else:
-                    return
-                def envoyer_alerte():
-                    get_client().send_message({
+            if content.startswith("/poll"):
+                try:
+                    # Envoie le message du sondage dans le stream associé au groupe
+                    client.send_message({
                         "type": "stream",
-                        "to": msg["display_recipient"],
-                        "topic": msg["subject"],
-                        "content": f"@**{user_name}** {texte} (vous: {user_msgs} msg, moyenne du chat: {med_msg})"
+                        "to": stream_name,
+                        "subject": "Sondage final",
+                        "content": content,
                     })
-                timer = threading.Timer(30.0, envoyer_alerte)
-                timer.start()
-                dernier_alerte_utilisateur[user_email] = maintenant    
-
-    # Affichage des statistiques de participation --------------------------------------------------
-    if stats_utilisateurs:
-    # Construire le contenu du message par utilisateur
-        lignes = []
-        for email, stats in stats_utilisateurs.items():
-            nom = stats["name"]
-            nb_msg = stats["messages"]
-            nb_car = stats["caracteres"]
-            lignes.append(f"- **{nom}** : {nb_msg} message(s), {nb_car} caractère(s) envoyés")
-
-        contenu = (
-            "**📊 Contribution détaillée des participants**\n\n"
-            + "\n".join(lignes)
-        )
-        if id_message_stats is None:
-            result = get_client().send_message({
-                "type": "stream",
-                "to": msg["display_recipient"],
-                "topic": "📊 Contribution",
-                "content": contenu,
-            })
-            if result["result"] == "success":
-                id_message_stats = result["id"]
+                    # Confirme à l'utilisateur que son sondage est publié
+                    client.send_message({
+                        "type": "private",
+                        "to": user_email,
+                        "content": "Ton sondage a bien été publié dans le groupe.",
+                    })
+                    # Supprime l'utilisateur des listes pour éviter plusieurs sondages
+                    del debate.poll_authors[user_email]
+                    del debate.group_to_stream[user_email]
+                except Exception as e:
+                    client.send_message({
+                        "type": "private",
+                        "to": user_email,
+                        "content": f"Erreur lors de l’envoi du sondage : {e}",
+                    })
             else:
-                print(f"Erreur lors de l'envoi du message de stats : {result.get('msg', 'Erreur inconnue')}")
-        else:
-            try:
-                get_client().update_message({
-                    "message_id": id_message_stats,
-                    "content": contenu
+                # Si le message ne commence pas par /poll, on prévient l'utilisateur
+                client.send_message({
+                    "type": "private",
+                    "to": user_email,
+                    "content": "Ton message ne commence pas par `/poll`. Utilise le format `/poll \"Question\" \"Option 1\" \"Option 2\"`.",
                 })
-            except Exception as e:
-                print(f"Erreur mise à jour stats : {e}")
+            break
 
-#calcul de la médiane, retourne un tuple (médiane des messages, médiane des caracteres)
-def get_mediane() -> float:
-    """Retourne uniquement la médiane des messages"""
-    if not stats_utilisateurs or len(stats_utilisateurs) < 3:
-        return 0.0
-    
-    try:
-        messages = [u["messages"] for u in stats_utilisateurs.values() if u["messages"] > 0]
-        return float(statistics.median(messages)) if messages else 0.0
-    except Exception as e:
-        print(f"Erreur calcul médiane: {str(e)}")
-        return 0.0
 
-        
+
 def check_and_create_channels() -> None:
     #Vérifie si la période d'inscription est terminée et crée les channels si nécessaire.
     for name, obj in listeDebat.items():
@@ -515,18 +618,13 @@ def check_and_create_channels() -> None:
 def message_listener() -> None:
     #Fonction pour écouter les messages entrants.
     print("Démarrage de l'écoute des messages...")
-    request = {
-        "event_types": ["message"],
-        "narrow": [],  # vide = écoute tous les messages
-        "all_public_streams": True  # écoute même les messages dans les streams publics où il est abonné
-    }
     get_client().call_on_each_message(handle_message)
 
 #A suppr dans le futur, car on devrait se suffir de la BDD.
 def create_debat() -> None:
     print("Vérification des débats à créer...")
     for debat in Debat.objects.all():
-        if not debat.debat_created and debat.is_archived == False:
+        if not debat.debat_created:
             # Créer le débat ici
             print(f"Création du débat : {debat.title}")
             # Exemple de création d'un débat
@@ -536,6 +634,7 @@ def create_debat() -> None:
             debat.save()
             print(listeDebat)
             print(f"Débat créé : {debat.title}")
+
 
 
 #A suppr dans le futur, car on devrait se suffir de la BDD
@@ -573,12 +672,18 @@ def add_user() -> None:
             else:
                 print(f"Période d'inscription toujours en cours pour '{debat.title}'. Fin prévue à {obj.subscription_end_date}.")
 
+def event_listener():
+    print("Démarrage de l'écoute des événements...")
+    get_client().call_on_each_event(handle_reaction, event_types=['reaction'])
+
 def main_loop() -> None:
     #Boucle principale du bot.
     print("Démarrage de la boucle principale...")
     i=0 #Utilité ?
     #get_client()  
     threading.Thread(target=message_listener).start()
+    #threading.Thread(target=event_listener, daemon=True).start()
+
    
     while True:
         #print(client.get_members())
@@ -588,7 +693,7 @@ def main_loop() -> None:
         #On ajoute les utilisateurs qui ne sont pas encore inscrits
         #print(listeDebat)
         add_user()
-        # Vérifie si la période d'sinscription est terminée et crée les channels si nécessaire
+        # Vérifie si la période d'inscription est terminée et crée les channels si nécessaire
         check_and_create_channels()
 
     
