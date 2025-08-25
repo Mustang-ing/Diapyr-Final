@@ -3,14 +3,16 @@ import time
 import random
 import threading
 from types import FrameType
+from django import db
 from django.db import transaction
+from django.core.exceptions import ValidationError
+import orjson
 import zulip
-from zerver.actions.streams import bulk_add_subscriptions
-from zerver.lib.moderate_debat import message_listener
-from zerver.lib.streams import list_to_streams
-from zerver.models import UserProfile, Stream
+
+from zerver.models import UserProfile, Stream,Realm,Message,SubMessage
 from zerver.models.debat import (
     Debat,
+    GroupVote,
     Participant,
     Group,
     GroupParticipant,
@@ -107,9 +109,26 @@ def send_poll(group: Group, candidates: list[GroupParticipant]) -> None:
         print(f"Multi-choice poll sent to {group.stream.name}")
         if response.get("result") != "success":
             raise Exception(f"Failed to send poll: {response.get('msg', 'Unknown error')}")
+        # Store the created poll message id on the current Vote
+        message_id = response.get("id")
+        print(f"Message ID : {message_id}")
+        if message_id:
+            vote_obj = Vote.objects.get(group=group, round=group.debat.round)
+            print(f"Vote_obj : {vote_obj}")
+            #vote_obj = Vote.objects.filter(group=group, round=group.debat.round).order_by("-vote_date").first()
+            if vote_obj is not None:
+                vote_obj.vote_message_id = message_id
+                vote_obj.save(update_fields=["vote_message"])
+                print(f"Poll message ID {message_id} linked to Vote object for group {group.group_name}")
+        
+        print(f"Result : {vote_obj}")
         
     except Exception as e:
         print(f"Error sending poll: {e}")
+        raise e
+        
+
+
 
 """
 def process_poll():
@@ -151,7 +170,7 @@ def start_vote_procedure(debat: Debat):
 
     #2 - We wait approximatively 30 seconds, this duration could also be chose by the user
     print("\nEn attente des réponses à l'enquéte...")
-    time.sleep(30)  # Attendre 30 secondes pour les réponses
+    time.sleep(5)  # Attendre 30 secondes pour les réponses
 
     #3 - Then we treat the answers
     print("\nTraitement des réponses...")

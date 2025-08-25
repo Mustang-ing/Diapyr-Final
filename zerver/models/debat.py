@@ -221,6 +221,7 @@ class GroupParticipant(models.Model):
     is_interested = models.BooleanField(null=True, default=None) # Indicates if the voter is interested by becoming a representative
     is_representative = models.BooleanField(null=True, default=False)  # Indicates if the participant is a representative of the group
     has_voted = models.BooleanField(null=True, default=False)  # Indicates if the participant has voted in the current round
+    vote_count = models.IntegerField(null=True, default=0)  # Number of votes received in the current round
 
     
     #votes = models.ManyToManyField(Vote, related_name='group_participants', blank=True)
@@ -253,7 +254,7 @@ class Vote(models.Model):
 class GroupVote(models.Model):
     """This table will list all the ballots of user in a voting session"""
     id = models.AutoField(primary_key=True)
-    group = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='group_votes')
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='group_votes')
     vote_session = models.ForeignKey(Vote, on_delete=models.CASCADE, related_name='group_votes')
     participant = models.ForeignKey(GroupParticipant, on_delete=models.CASCADE)
     vote_for = models.ForeignKey(GroupParticipant, on_delete=models.CASCADE, related_name='votes_received', null=True, blank=True)
@@ -263,6 +264,11 @@ class GroupVote(models.Model):
 
     def __str__(self):
         return f"Vote by {self.participant.full_name} in Group {self.group.id} of Debate {self.group.debat.title}"
+    
+
+def get_votes_count(group_vote : GroupVote, participant : GroupParticipant) -> int:
+    """Return the number of votes received by a participant in a voting session."""
+    return GroupVote.objects.filter(vote_session=group_vote.vote_session, vote_for=participant).count()
 
     
 
