@@ -263,8 +263,8 @@ DEFAULT_RATE_LIMITING_RULES = {
     # Rate limiting general API access protects the server against
     # clients causing unreasonable server load.
     "api_by_user": [
-        # 200 requests per minute
-        (60, 200),
+        # 400 requests per minute
+        (60, 400),
     ],
     # Limits total number of unauthenticated API requests (primarily
     # used by the public access option). Since these are

@@ -189,6 +189,9 @@ class Group(models.Model):
     def __str__(self):
         return f"Group {self.id} for Debate {self.debat.title} (Round {self.round})"
 
+    def size(self) -> int:
+        return self.members.count()
+
     def get_users_id(self):
         """Return a list of user IDs in the group."""
         return [id for id in self.members.values_list('id', flat=True)]
@@ -196,6 +199,7 @@ class Group(models.Model):
     def get_users_emails(self):
         """Return a list of user emails in the group."""
         return [email for email in self.members.values_list('email', flat=True)]
+    
 
 
     @property

@@ -20,6 +20,10 @@ from random import shuffle
 import math
 import sys,signal
 
+# NEXT_PHASE_MODE is a constant that defines the mode for the next phase of the debate process
+# There are two modes 1 - "Random" (Choose randomly) 2 - "Vote" (Allow participants to vote)
+NEXT_PHASE_MODE = "Vote"
+
 try:  # External API client (used by the _via_api helper below); optional for internal path
     external_client = zulip.Client(config_file="zerver/lib/contrib_bots/Diapyr_bot/zuliprc.txt")
     print("Client Zulip initialisé avec succès (API mode disponible).")
@@ -82,7 +86,7 @@ def split_into_group_db(debat : Debat, max_per_group : int) ->  list[Group]:
 
     if n <= max_per_group:
         print(f"Nombre de participants ({n}) inférieur ou égal au nombre maximal de participants par groupe ({max_per_group}).")
-        return [users]
+        return [Group.objects.create(debat=debat, round=debat.round, group_name=debat.title + f"Tour {debat.round} - Groupe 1", group_number=1) ]
 
 
     print(f"Nombre de participants : {n}, Nombre maximal de participants par groupe : {max_per_group}")
@@ -92,7 +96,7 @@ def split_into_group_db(debat : Debat, max_per_group : int) ->  list[Group]:
         print(f"Nombre de groupes calculé : {num_groups}")
     except ZeroDivisionError:
         print("Erreur : Le nombre maximal de participants par groupe ne peut pas être zéro.")
-        return []
+        return None
 
     min_per_group = n // num_groups
     r = n % num_groups
@@ -138,6 +142,16 @@ def archive_all_groups(debat: Debat) -> None:
         
         print(f"Tous les groupes du débat '{debat.title}' ont été archivés.")
 
+
+def update_max_representant(debat: Debat, groups: Group) -> None:
+    min_group_size = min(group.size() for group in groups)
+    max_representant =  math.ceil(min_group_size/2)
+    if max_representant < 1:
+        max_representant = 1
+    if debat.max_representant > max_representant:
+        debat.max_representant = max_representant
+    print(f"Le nombre maximum de représentants par groupe a été mis à jour à {max_representant} pour le débat '{debat.title}'.")
+
 #Routine 2 - Gérer un débat
 def next_step(debat: Debat) -> bool:
     """
@@ -159,26 +173,47 @@ def next_step(debat: Debat) -> bool:
     
     #Normalement c'est là qu'on doit commencer la procédure de votes
     #Créer les sessions de vote et laisser les écritures se committer avant d'arrêter le flux
-    start_vote_procedure(debat)
+    if NEXT_PHASE_MODE == "Vote":
+        print("Démarrage de la procédure de vote...")
+        start_vote_procedure(debat)
+        # We eliminates every user who are not a representative
+        for user in debat.active_participants:
+            if user.is_representative:
+                user.is_active_in_diapyr = True
+                user.save(update_fields=["is_active_in_diapyr"])
+            else:
+                user.is_active_in_diapyr = False
+                user.save(update_fields=["is_active_in_diapyr"])
+
+            eliminated = [user for user in debat.active_participants if not user.is_active_in_diapyr]
+
+    elif NEXT_PHASE_MODE == "Random":
+        eliminated = random.sample(users, debat.max_per_group)
+
+
+
     archive_all_groups(debat)
-    # Ne pas interrompre le processus brutalement ici (SystemExit annule les transactions).
-    # On arrête proprement cette boucle en retournant False.
-    return False
-    eliminated = random.sample(users, debat.max_per_group)
+
     users_to_keep = [u for u in users if u not in eliminated]
 
     if len(users_to_keep) <= debat.max_per_group: #Si apres la suppresion enleve trop de personne
         return False
-    
-    for user in eliminated:
-        user.is_active_in_diapyr = False  # On désactive l'utilisateur dans le débat
-        user.save(update_fields=["is_active_in_diapyr"])
+
+    if NEXT_PHASE_MODE == "Random":
+        for user in eliminated:
+            user.is_active_in_diapyr = False  # On désactive l'utilisateur dans le débat
+            user.save(update_fields=["is_active_in_diapyr"])
 
     debat.round += 1
     debat.save(update_fields=["round"])
 
     print(f"Étape {debat.round} du débat '{debat.title}'")
     groups = split_into_group_db(debat,debat.max_per_group)
+
+    update_max_representant(debat,groups)
+    if groups is None or len(groups) < 1:
+        print(f"Erreur lors de la création des groupes pour le débat '{debat.title}'.")
+        return False
     create_streams_for_groups_db_via_api(groups,124)
 
     external_client.send_message({
@@ -361,6 +396,7 @@ def check_and_create_channels() -> None:
                 debat_obj.step=3
                 debat_obj.save()
                 groups = split_into_group_db(debat_obj, debat_obj.max_per_group)
+                update_max_representant(debat_obj, groups)
                 if groups == []:
                     print(f"Création de débat imposible pour l'objet D '{debat_obj.title}'. Il n'a pas de participants ou le nombre maximal de participants par groupe est 0.")
                     break
