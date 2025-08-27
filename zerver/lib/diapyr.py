@@ -164,7 +164,7 @@ def next_step(debat: Debat) -> bool:
     
     users = debat.active_participants
     if users is None or len(users) == 0:
-        print(f"Aucun utilisateur inscrit dans le débat '{debat.name}'.")
+        print(f"Aucun utilisateur inscrit dans le débat '{debat.title}'.")
         return False
     
     #On vérifie si leurs nombre est assez grand pour etre divisé OU que le nombre de passes choisit est inférieur OU au moins 2 utilisateurs
