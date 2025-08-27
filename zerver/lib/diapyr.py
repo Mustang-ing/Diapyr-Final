@@ -210,7 +210,7 @@ def next_step(debat: Debat) -> bool:
     print(f"Étape {debat.round} du débat '{debat.title}'")
     groups = split_into_group_db(debat,debat.max_per_group)
 
-    update_max_representant(debat,groups)
+    #update_max_representant(debat,groups)
     if groups is None or len(groups) < 1:
         print(f"Erreur lors de la création des groupes pour le débat '{debat.title}'.")
         return False
@@ -396,7 +396,7 @@ def check_and_create_channels() -> None:
                 debat_obj.step=3
                 debat_obj.save()
                 groups = split_into_group_db(debat_obj, debat_obj.max_per_group)
-                update_max_representant(debat_obj, groups)
+                #update_max_representant(debat_obj, groups)
                 if groups == []:
                     print(f"Création de débat imposible pour l'objet D '{debat_obj.title}'. Il n'a pas de participants ou le nombre maximal de participants par groupe est 0.")
                     break

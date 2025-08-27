@@ -149,7 +149,7 @@ def process_poll_result(group: Group, candidates: list[GroupParticipant], max_re
         print(f"Threshold: {threshold}, Selected (after random sampling to max {max_representant}): {selected}")
         return selected
 
-    elif len(selected) < max_representant:
+    elif len(selected) <= max_representant:
         # Sort candidates by number of votes (descending), only keep those with at least 1 vote
         #When there aren't enough people who exceed the threshold, we will simply choose the candidates based on how much votes they recolted
         sorted_candidates = [
@@ -177,7 +177,7 @@ def start_vote_procedure(debat: Debat):
 
     #2 - We wait approximatively 30 seconds, this duration could also be chose by the user
     print("\nEn attente des réponses à l'enquéte...")
-    time.sleep(5)  # Attendre 30 secondes pour les réponses
+    time.sleep(30)  # Attendre 30 secondes pour les réponses
 
     #3 - Then we treat the answers
     print("\nTraitement des réponses...")
@@ -208,7 +208,7 @@ def start_vote_procedure(debat: Debat):
             #Attention dans la réalité, les groupes qui ne vote pas assez ne sont pas représenté (Aucun candidats)
             print(message)
             notify_users(group.get_users_emails(), message)
-            candidates = random.sample(list(group.group_participants.all()), group.debat.max_representant)
+            candidates = random.sample(list(group.group_participants.all()), max(group.debat.max_representant,group.size))
             candidates_list[group] = candidates
             send_poll(group, candidates)
             # group.vote is a RelatedManager (ForeignKey). Update the vote for this round.
@@ -253,9 +253,14 @@ def start_vote_procedure(debat: Debat):
                     f"Le vote pour le groupe {group.group_name} est terminé. \n Les représentants sélectionnés pour le groupe {group.group_name} sont : {', '.join(representant_names)}"
                 )
 
+            else: 
+                print(f"No user has been elected, your group won't be represented into the next phase.")
+
             # Update the vote state to 'completed'
             Vote.objects.filter(group=group, round=group.debat.round).update(state='completed')
-
+            
+            
+            
         except Exception as e:
             traceback.print_exc()
             print(f"Error processing votes for group {group.group_name}: {e}")
