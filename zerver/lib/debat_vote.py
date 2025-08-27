@@ -169,7 +169,8 @@ def process_poll_result(group: Group, candidates: list[GroupParticipant], max_re
 def start_vote_procedure(debat: Debat):
     print(f"Démarrage de la procédure de vote pour le débat '{debat.title}'")
     #1 - We start by sending a message to all participant in order to see if they want to be a representant
-
+    debat.vote_phase = True
+    debat.save(update_fields=["vote_phase"])
     print(f"envoie enquete...")
     for participant in debat.active_participants:
         message = "Voulez-vous participer aux étapes suivantes? (oui/non)"
@@ -208,7 +209,7 @@ def start_vote_procedure(debat: Debat):
             #Attention dans la réalité, les groupes qui ne vote pas assez ne sont pas représenté (Aucun candidats)
             print(message)
             notify_users(group.get_users_emails(), message)
-            candidates = random.sample(list(group.group_participants.all()), max(group.debat.max_representant,group.size))
+            candidates = random.sample(list(group.group_participants.all()), max(group.debat.max_representant, group.size()))
             candidates_list[group] = candidates
             send_poll(group, candidates)
             # group.vote is a RelatedManager (ForeignKey). Update the vote for this round.
@@ -267,7 +268,8 @@ def start_vote_procedure(debat: Debat):
             raise
     
 
-
+    debat.vote_phase = False
+    debat.save(update_fields=["vote_phase"])
     print("Fin de la période de vote. Traitement des résultats...")
     
 

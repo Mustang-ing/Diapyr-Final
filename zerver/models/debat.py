@@ -55,6 +55,7 @@ class Debat(models.Model):
     is_archived = models.BooleanField(default=False, null=True)
     is_validated = models.BooleanField(default=False, null=True)  # Indicates if the debate parameters are validated by the creator
     skip_pre_registration = models.BooleanField(default=False, null=True)  # Skip the pre-registration phase a.k.a phase 2, if the user chose default parameters
+    vote_phase = models.BooleanField(default=False, null=True)  # Indicates if the debate is in the voting phase
  
     #criteres = ArrayField(models.CharField(max_length=50), default=list, blank=True, null=True)
 

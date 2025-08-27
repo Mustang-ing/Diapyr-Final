@@ -1,4 +1,9 @@
+import random
 import django,os,sys
+
+import orjson
+
+
 
 
 #Old way to set the project root from zerver/lib/contrib_bots/Diapyr_bot/Test_debat.py
@@ -10,10 +15,12 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "zproject.settings")
 django.setup()
 import zulip
 from datetime import datetime, timedelta
-from zerver.models.debat import Debat,Participant
-from zerver.models import UserProfile
+from zerver.models.debat import Debat, GroupParticipant, GroupVote,Participant, Vote
+from zerver.models import UserProfile,SubMessage
 #from zerver.lib.actions import do_delete_stream
 import time
+
+REALM_ID = 9  # Replace with your realm ID
 
 def _parse_cli_args() -> tuple[int | None, int | None, int | None, int | None]:
     """Parse 4 positional CLI args if present: nb_subscribers max_per_group time_between_steps mode.
@@ -59,6 +66,9 @@ def main(nb_subscribers: int | None = None,
             total += 1
             real_user.append(user)
 
+    real_users2 = UserProfile.objects.filter(realm_id=REALM_ID,is_bot=False)
+    print(f"Nombre total d'utilisateurs dans l'organisation via ORM : {real_users2.count()}")
+
     print(f"Nombre total d'utilisateurs dans l'organisation : {total}")
 
     # Determine parameters: prefer function args, then CLI args, else interactive
@@ -74,7 +84,7 @@ def main(nb_subscribers: int | None = None,
         print("Paramètres invalides. Veuillez fournir 4 entiers (nb_subscribers max_per_group time_between_steps mode) ou utiliser le mode interactif.")
         exit(1)
 
-    if nb_subscribers > total:
+    if nb_subscribers > real_users2.count():
         print("Le nombre de participants est supérieur au nombre de personne dans l'organisation")
         exit(1)
 
@@ -82,7 +92,7 @@ def main(nb_subscribers: int | None = None,
     num = Debat.objects.count()
     debat = Debat.objects.create(
         title=f"TestDebate - Beta3 {num} ",
-        creator=UserProfile.objects.get(id=157),  # Assuming the creator is the first user
+        creator=UserProfile.objects.get(id=157),  # Assuming the creator is the admin
         max_per_group=max_per_group,
         max_representant=4,
         subscription_end_date=(datetime.now() + timedelta(seconds=1)).isoformat(),
@@ -94,18 +104,66 @@ def main(nb_subscribers: int | None = None,
 
     print(f"Débat créé : {debat.title}")
 
+    """
     # Create participants
     for i, user in zip(range(nb_subscribers), real_user):
         debat.debat_participants.add(UserProfile.objects.get(id=user['user_id']))  # Add the user directly to the debate
         print(f"Participant {i+1} créé : {user['full_name']} - {user['email']}")
+    """
+    #Alternate method
 
-    # Get the status
+    for i, user in zip(range(nb_subscribers), real_users2):
+        debat.debat_participants.add(user)
+        print(f"Participant {i+1} ajouté via ORM : {user.full_name} - {user.email}")
+
+    print(f"Débat {debat.title} - Étape {debat.step} - Participants : {len(debat.active_participants)} - Groupes : {debat.active_groups.count()}")
+
+    current_lap : int = debat.round
     while debat.is_archived is False:
-        debat.refresh_from_db()
-        print(f"Débat {debat.title} - Étape {debat.step} - Participants : {debat.debat_participant.count()}")
+        print(debat.refresh_from_db())
+        if  debat.round != current_lap:
+            print(f"Débat {debat.title} - Étape {debat.step} - Participants : {len(debat.active_participants)} - Groupes : {debat.active_groups.count()}")
+            current_lap = debat.round
 
+        while debat.vote_phase == True:
+            #Vote procedure
+            #1 - Simulate users who answer to the bot question
+            
+            for group in debat.active_groups:
+                for user in group.group_participants.all():
+                    if random.random() < 0.7:  # Simulate a 70% chance of responding
+                        GroupParticipant.objects.filter(id=user.id).update(is_interested=True)
+                        #Simplement faire : user.is_interested = True ne marche pas, car user est tiré d'un RelatedManager, ce n'est pas la relation directe
+                        print(f"{user.participant.full_name} se porte volontaire.")
+
+            print("Vote aléatoire dans 42 secondes")
+            time.sleep(42)
+
+            #2 - Simulate the vote of users
+            for group in debat.active_groups:
+                vote_session = Vote.objects.get(group=group)
+                initial_widget = SubMessage.objects.filter(message_id=vote_session.vote_message_id, msg_type="widget").order_by("id").first()
+                init_payload = orjson.loads(initial_widget.content)
+                if init_payload.get("widget_type") == "poll":
+                    options = (
+                        init_payload.get("extra_data", {}).get("options", [])
+                    )
+                candidates = [GroupParticipant.objects.get(group=group, participant__full_name=option) for option in options]
+                for participant in group.group_participants.all():
+                    for choice in candidates:
+                        if random.random() < 0.5:
+                            # Simulate the user's vote - 50% Chance to vote for the user
+                            GroupVote.objects.get_or_create(
+                            group=group,
+                            vote_session=vote_session,
+                            participant=participant,
+                            vote_for=choice,
+                        )
+            break
+            
+        
         # Wait for the next step
-        time.sleep(time_between_steps)
+        #time.sleep(time_between_steps+3)
 
 if __name__ == "__main__":
     main()

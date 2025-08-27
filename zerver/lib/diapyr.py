@@ -257,6 +257,7 @@ def start_debate_process(debat: Debat) -> None: #N'aurait t'on pas pu faire une 
             notify_users(group.get_users_emails(), message)
 
         debat.archive_debat()
+        #L'etape 4 ne doit pas être la fin du debat, step doit aller jusqu'a n
         debat.step = 4  # Set step to 4 to indicate the debate is finished
         debat.save(update_fields=["step"])
 
